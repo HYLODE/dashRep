@@ -1,41 +1,69 @@
 """
 Placeholder for ED
 """
+import datetime
 import json
 import os
 import warnings
-import datetime
 from pathlib import Path
 
+import dash_bootstrap_components as dbc
 import numpy as np
 import pandas as pd
-
-from sqlalchemy import create_engine
-
 import plotly.express as px
 import plotly.graph_objects as go
+from config.config import ConfigFactory, footer, header, nav
 from dash import dash_table as dt
 from dash import dcc, html
-import dash_bootstrap_components as dbc
-
 from ridgeplot import ridgeplot
+from sqlalchemy import create_engine
 
-from config.config import ConfigFactory, footer, header, nav
-from config.config import ConfigFactory
 conf = ConfigFactory.factory()
+
+# ED aggregated data over time
+AGG_CSV_FILE = "ed_predictor_agg.csv"
+AGG_SQL_FILE = "ed_predictor_agg.sql"
+AGG_PARSE_DATES = ["extract_dttm"]
+
+# ED aggregated data over time
+CSN_CSV_FILE = "ed_predictor_csn.csv"
+CSN_SQL_FILE = "ed_predictor_csn.sql"
+CSN_PARSE_DATES = [
+    "presentation_time",
+    "admission_time",
+    "extract_dttm",
+    "date_of_birth",
+]
 
 # Extract the data
 # TODO: wrap this in a function and then memoize it
+def get_dataframe(
+    sql_script=None, csv_file=None, dev=conf.DEV, parse_dates=[]
+) -> pd.DataFrame:
+    """
+    Should run a SQL script or bring in dummy data that matches that output
+    Returns a single dataframe
 
 
-def get_ed_data(dev=conf.DEV):
-    CSV_FILE = 'ed_agg_30d_sample.csv'
-    SQL_FILE = 'ed_predictor_agg.sql'
+    :param      sql_script:  path to sql script to run to extract data
+    :type       sql_script:  str
+    :param      csv_file:  path to csv file either to write (when live)
+                        or to read when dev
+    :type       csv_file:  str
+    :param      parse_dates:  list of dates to parse if reading CSV
+    :type       parse_dates:  bool
+    :param      dev:  flag to indicate if dev
+    :type       dev:  bool
+    """
+    if dev:
+        assert csv_file is not None
+    else:
+        assert sql_script is not None
 
-    if conf.DEV:
+    if dev:
         df = pd.read_csv(
-            f"data/secret/{CSV_FILE}",
-            parse_dates=['extract_dttm'],
+            f"data/secret/{csv_file}",
+            parse_dates=parse_dates,
         )
 
     else:
@@ -50,27 +78,29 @@ def get_ed_data(dev=conf.DEV):
         emapdb_engine = create_engine(
             f"postgresql://{uds_user}:{uds_passwd}@{uds_host}:{uds_port}/{uds_name}"
         )
-        q = Path(f"notebooks/sql/{SQL_FILE}").read_text()
+        q = Path(f"notebooks/sql/{sql_script}").read_text()
         df = pd.read_sql_query(q, emapdb_engine)
-        df.to_csv(f"data/secret/{CSV_FILE}", index=False)
-
+        df.to_csv(f"data/secret/{csv_file}", index=False)
 
     return df
 
 
-
-def tidy_ed_data(df):
+def wrangle_ed_agg(df):
     # Round to handle timezones (and round to nearest even hour)
-    df['extract_dttm'] = df['extract_dttm'].apply(lambda x: datetime.datetime(x.year, x.month, x.day, 2*(x.hour//2)))
+    df["extract_dttm"] = df["extract_dttm"].apply(
+        lambda x: datetime.datetime(x.year, x.month, x.day, 2 * (x.hour // 2))
+    )
 
-    df['hour'] = df.extract_dttm.round('1H').dt.hour
-    df['dow'] = df.extract_dttm.dt.dayofweek # Monday = 0, Sunday = 6
-    df['date'] = df.extract_dttm.round('1D').dt.date
-    df['days'] = (df.extract_dttm.max() - df.extract_dttm).round('1D').dt.days.astype(int)
+    df["hour"] = df.extract_dttm.round("1H").dt.hour
+    df["dow"] = df.extract_dttm.dt.dayofweek  # Monday = 0, Sunday = 6
+    df["date"] = df.extract_dttm.round("1D").dt.date
+    df["days"] = (
+        (df.extract_dttm.max() - df.extract_dttm).round("1D").dt.days.astype(int)
+    )
 
     # df = df.loc[:, ['extract_dttm', 'days', 'date', 'dow', 'hour', 'num_adm_pred', 'probs']]
-    df['probs'] = df['probs'].fillna(value=0)
-    df['probs'] = df['probs'].round(decimals=5)
+    df["probs"] = df["probs"].fillna(value=0)
+    df["probs"] = df["probs"].round(decimals=5)
 
     return df
 
@@ -123,54 +153,98 @@ def prepare_ridge_densities(df, xmax=40):
     ll = []
     labels = []
     for day in days:
-        tt = dfr.loc[dfr.days==day].drop(['days'],axis=1)
-        tt = pd.merge(skeleton, tt, how='left')
+        tt = dfr.loc[dfr.days == day].drop(["days"], axis=1)
+        tt = pd.merge(skeleton, tt, how="left")
         tt = tt.reset_index(drop=True)
         tt.fillna(value=0, inplace=True)
         if sum(tt.probs) == 0:
             continue
-        tt = tt.loc[:40,]
+        tt = tt.loc[
+            :40,
+        ]
         tt = tt.values.transpose()
         ll.append(tt)
         labels.append(day)
-    res = np.asarray(ll)   
+    res = np.asarray(ll)
     return labels, res
 
 
-def gen_ridgeplot(densities, labels):
-    fig = ridgeplot(densities=densities, 
-                    labels=labels,
-                    colorscale='portland',
-                    colormode='mean-minmax',
-                    spacing=1/5,
-                )
+def gen_ridgeplot():
+    # TODO: tidy this as calling global variables
+    df = get_dataframe(
+        sql_script=AGG_SQL_FILE,
+        csv_file=AGG_CSV_FILE,
+        dev=conf.DEV,
+        parse_dates=AGG_PARSE_DATES,
+    )
+    df = wrangle_ed_agg(df)
+    df = filter_same(df)
+    labels, densities = prepare_ridge_densities(df)
+    fig = ridgeplot(
+        densities=densities,
+        labels=labels,
+        colorscale="portland",
+        colormode="mean-minmax",
+        spacing=1 / 5,
+    )
     fig.update_layout(showlegend=False)
     fig.update_layout(autosize=False, width=800, height=400)
-    fig.update_layout(xaxis_title='Inpatient bed demand',
-                    yaxis_title=f"Predictions from days past<br>(i.e. up to {max(labels)} days ago)")
-    fig.update_layout(template='plotly_white')
-    #fig.show()
+    fig.update_layout(
+        xaxis_title="Inpatient bed demand",
+        yaxis_title=f"Predictions from days past<br>(i.e. up to {max(labels)} days ago)",
+    )
+    fig.update_layout(template="plotly_white")
+    # fig.show()
     return fig
 
 
-df = get_ed_data(dev=conf.DEV)
-df = tidy_ed_data(df)
-df = filter_same(df)
-labels, densities = prepare_ridge_densities(df)
-fig = gen_ridgeplot(densities, labels)
+def csn_dictionary() -> dict:
+    # prepare a dictionary of data wrangled from the csn table
+    res = dict()
+    df = get_dataframe(
+        sql_script=CSN_SQL_FILE,
+        csv_file=CSN_CSV_FILE,
+        dev=conf.DEV,
+        parse_dates=CSN_PARSE_DATES,
+    )
+
+    res["n_patients"] = df.mrn.nunique()
+    # import pdb; pdb.set_trace()
+    return res
 
 
-df = get_ed_data(dev=conf.DEV)
-df = tidy_ed_data(df)
-df = filter_same(df)
-labels, densities = prepare_ridge_densities(df)
-fig = gen_ridgeplot(densities, labels)
+csn = csn_dictionary()
+
+
+# Prepare ED predictor ridgeplot
+fig = gen_ridgeplot()
+
+intro_card = dbc.Card(
+    [
+        dbc.CardHeader(html.H6("ED status report")),
+        dbc.CardBody(
+            html.Div([
+                html.P(f"There are currently {csn['n_patients']} patients in the ED"),
+                ]),
+        ),
+    ]
+)
+
+
+ridgeplot_card = dbc.Card(
+    [
+        dbc.CardHeader(html.H6("Current and historical predictions")),
+        dbc.CardBody(
+            html.Div([dcc.Graph(figure=fig)]),
+        ),
+    ]
+)
 
 main = html.Div(
     [
         html.H1("Emergency Department data"),
-        html.P("Page under construction"),
-        html.Div([dcc.Graph(figure=fig)]),
+        intro_card,
+        ridgeplot_card,
     ]
 )
 
