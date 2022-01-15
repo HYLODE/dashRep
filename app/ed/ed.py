@@ -34,8 +34,10 @@ def get_ed_data(dev=conf.DEV):
 
     if conf.DEV:
         df = pd.read_csv(
-            f"../data/secret/{CSV_FILE}"
+            f"data/secret/{CSV_FILE}",
+            parse_dates=['extract_dttm'],
         )
+
     else:
         # Environment variables stored in conf.SECRETS
         # Construct the PostgreSQL connection
@@ -51,13 +53,14 @@ def get_ed_data(dev=conf.DEV):
         q = Path(f"notebooks/sql/{SQL_FILE}").read_text()
         df = pd.read_sql_query(q, emapdb_engine)
         df.to_csv(f"data/secret/{CSV_FILE}", index=False)
+
+
     return df
 
 
 
 def tidy_ed_data(df):
     # Round to handle timezones (and round to nearest even hour)
-    # import pdb; pdb.set_trace()
     df['extract_dttm'] = df['extract_dttm'].apply(lambda x: datetime.datetime(x.year, x.month, x.day, 2*(x.hour//2)))
 
     df['hour'] = df.extract_dttm.round('1H').dt.hour
