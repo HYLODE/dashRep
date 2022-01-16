@@ -7,18 +7,24 @@ import os
 import warnings
 from pathlib import Path
 
-import dash_bootstrap_components as dbc
 import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from config.config import ConfigFactory, footer, header, nav
+
+import dash_bootstrap_components as dbc
+
 from dash import dash_table as dt
 from dash import dcc, html
+from dash import Dash, Input, Output, State
+
 from ridgeplot import ridgeplot
 from sqlalchemy import create_engine
 
+from config.config import ConfigFactory, footer, header, nav
+from app import app
 conf = ConfigFactory.factory()
+
 
 # ED aggregated data over time
 AGG_CSV_FILE = "ed_predictor_agg.csv"
@@ -169,8 +175,16 @@ def prepare_ridge_densities(df, xmax=40):
     return labels, res
 
 
-def gen_ridgeplot():
-    # TODO: tidy this as calling global variables
+
+
+@app.callback(
+    output=dict(json_data=Output("agg-predictions", "data")),  # output data to store
+    inputs=dict(
+        intervals=Input("ed-interval-data", "n_intervals"),
+    ),
+    # prevent_initial_call=True,  # suppress_callback_exceptions does not work
+)
+def get_agg(intervals):
     df = get_dataframe(
         sql_script=AGG_SQL_FILE,
         csv_file=AGG_CSV_FILE,
@@ -178,6 +192,17 @@ def gen_ridgeplot():
         parse_dates=AGG_PARSE_DATES,
     )
     df = wrangle_ed_agg(df)
+
+    return dict(json_data=df.to_dict("records"))
+
+
+@app.callback(
+    Output("ridgeplot", "children"),
+    Input("agg-predictions", "data"),
+)
+def gen_ridgeplot(json_data):
+    # TODO: tidy this as calling global variables
+    df = pd.DataFrame.from_records(json_data)
     df = filter_same(df)
     labels, densities = prepare_ridge_densities(df)
     fig = ridgeplot(
@@ -195,7 +220,7 @@ def gen_ridgeplot():
     )
     fig.update_layout(template="plotly_white")
     # fig.show()
-    return fig
+    return dcc.Graph(figure=fig)
 
 
 def csn_dictionary() -> dict:
@@ -217,7 +242,7 @@ csn = csn_dictionary()
 
 
 # Prepare ED predictor ridgeplot
-fig = gen_ridgeplot()
+# fig = gen_ridgeplot()
 
 intro_card = dbc.Card(
     [
@@ -234,9 +259,20 @@ intro_card = dbc.Card(
 ridgeplot_card = dbc.Card(
     [
         dbc.CardHeader(html.H6("Current and historical predictions")),
-        dbc.CardBody(
-            html.Div([dcc.Graph(figure=fig)]),
-        ),
+        dbc.CardBody([
+            html.Div([html.P("Predicted bed demand within the next 8 hours with the predictions from preceding weeks at the same time shown behind")]),
+            html.Div(id='ridgeplot'),
+        ]),
+    ]
+)
+
+datatable_card = dbc.Card(
+    [
+        dbc.CardHeader(html.H6("ED patient list")),
+        dbc.CardBody([
+            # html.Div([html.P("Predicted bed demand within the next 8 hours with the predictions from preceding weeks at the same time shown behind")]),
+            # html.Div([dcc.Graph(figure=fig)]),
+        ]),
     ]
 )
 
@@ -248,7 +284,19 @@ main = html.Div(
     ]
 )
 
-# """Principal layout for sitrep2 page"""
+dash_only = html.Div(
+    [
+        dcc.Interval(id="ed-interval-data", interval=conf.REFRESH_INTERVAL, n_intervals=0),
+        # which ICU?
+        # dcc.Store(id="icu_active"),
+        # use this to source-data when the data changes
+        dcc.Store(id="csn-patients"),
+        # dcc.Store(id="tbl-active-row"),
+        dcc.Store(id="agg-predictions"),
+    ]
+)
+
+# """Principal layout for ED page"""
 ed = dbc.Container(
     fluid=True,
     className="dbc",
@@ -257,6 +305,6 @@ ed = dbc.Container(
         nav,
         main,
         footer,
-        # dash_only,
+        dash_only,
     ],
 )
