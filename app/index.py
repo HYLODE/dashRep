@@ -10,6 +10,9 @@ from sitrep.layout import sitrep
 from debug.debug import debug
 from covid.covid import covid
 from ed.ed import ed
+from perrt.layout import perrt
+from pacu.layout import pacu
+from discharges.layout import discharges
 from landing import landing
 
 from app import app
@@ -34,6 +37,12 @@ def display_page(pathname):
         return covid
     elif pathname == "/ed":
         return ed
+    elif pathname == "/perrt":
+        return perrt
+    elif pathname == "/pacu":
+        return pacu
+    elif pathname == "/discharges":
+        return discharges
     elif pathname == "/debug":
         return debug
     elif pathname == "/":

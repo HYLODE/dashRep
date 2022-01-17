@@ -125,8 +125,11 @@ header = dbc.Container(
                     dbc.NavbarSimple(
                         children=[
                             dbc.NavItem(dbc.NavLink("ICU", href="/sitrep")),
+                            dbc.NavItem(dbc.NavLink("PACU", href="/pacu")),
+                            dbc.NavItem(dbc.NavLink("PERTT", href="/perrt")),
                             dbc.NavItem(dbc.NavLink("ED", href="/ed")),
                             dbc.NavItem(dbc.NavLink(["COVID"], href="/covid")),
+                            dbc.NavItem(dbc.NavLink("DISCHARGES", href="/discharges")),
                         ],
                         brand="UCLH Critical Care Sitrep",
                         brand_href="/",

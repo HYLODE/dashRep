@@ -6,20 +6,67 @@ import dash_bootstrap_components as dbc
 
 from config.config import ConfigFactory
 from config.config import header, nav, footer
+from app import app
+
+# from . import callbacks
+
+conf = ConfigFactory.factory()
 
 
-main = html.Div([
-    html.P('Welcome to the UCLH critical care sitrep and COVID tool')
-])
+landing_notes = dcc.Markdown(
+"""
+### Welcome to the UCLH critical care sitrep and bed management tool
+
+Here's what we're working on!
+
+"""
+)
 
 
+main = dbc.Container(
+    [
+        # All content here organised as per bootstrap
+        dbc.Row(
+            dbc.Col(
+                dbc.Card(
+                    [
+                        dbc.CardHeader(html.H6("HyperLocal Bed Demand Forecasts")),
+                        dbc.CardBody(html.Div([landing_notes])),
+                    ],
+                ),
+                md=12,
+            ),
+        ),
+        dbc.Row([
+            html.Img(src=app.get_asset_url('hylode-project-plan.png'))
+            ]),
+    ],
+    fluid=True,
+)
+
+# use this to store dash components that you don't need to 'see'
+dash_stores = html.Div(
+    [
+        # update and refresh
+        dcc.Interval(
+            id="landing-interval-data", interval=conf.REFRESH_INTERVAL, n_intervals=0
+        ),
+        # use this to source-data
+        dcc.Store(id="landing-source-data"),
+    ]
+)
+
+# """Principal layout for landing page"""
 landing = dbc.Container(
     fluid=True,
+    className="dbc",
     children=[
         header,
         nav,
         main,
         footer,
-        # dash_only,
+        dash_stores,
     ],
 )
+
+
