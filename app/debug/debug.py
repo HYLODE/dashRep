@@ -23,8 +23,8 @@ debug = html.Div(
             [
                 "Trying out icons:",
                 html.I(
-                    className="flaticon-cough me-2",
-                    # className="fas fa-ambulance me-2",
+                    # className="flaticon-cough me-2",
+                    className="fas fa-ambulance me-2",
                     style={"font-size": "10rem", "color": "cornflowerblue"},
                 ),
             ],

@@ -21,6 +21,9 @@ from config.config import ConfigFactory, footer, header, nav
 
 conf = ConfigFactory.factory()
 
+
+ICON_RAIN = '<i class="fa fa-cloud-rain"></i>'
+
 def count_beds_in_ward_skeleton(ward):
     df_skeleton = wng.get_bed_skeleton(ward, conf.SKELETON_DATA_SOURCE, dev=conf.DEV)
     return df_skeleton.shape[0]
@@ -51,6 +54,9 @@ def request_data(ward):
     df_orig = wng.merge_hylode_user_data(df_skeleton, df_clean, df_user)
     # data wrangling
     df = wng.wrangle_data(df_orig, conf.COLS)
+
+    df.loc[df['vent_type_1_4h']=="Ventilated", 'vent_type_1_4h'] = ICON_RAIN
+
     return df
 
 
@@ -153,6 +159,11 @@ def gen_datatable_main(json_data, icu):
         utils.get_dict_from_list(COL_DICT, "id", "discharge_ready_1_4h"),
         dict(presentation="dropdown"),
     )
+    # permit icons
+    utils.deep_update(
+        utils.get_dict_from_list(COL_DICT, "id", "vent_type_1_4h"),
+        dict(presentation="markdown"),
+    )
 
     DISCHARGE_OPTIONS = ["Ready", "No", "Review"]
 
@@ -192,6 +203,7 @@ def gen_datatable_main(json_data, icu):
             sort_action="native",
             cell_selectable=True,  # possible to click and navigate cells
             # row_selectable="single",
+            markdown_options={"html": True},
         ),
     )
 

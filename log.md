@@ -41,3 +41,7 @@ reorganise layout so wider table with 'dials' at top
 rebuilt the app on hyfield
 moved the repo into hylode
 now going to try and run the infection control query
+
+## 2022-01-17
+Looking for icons as a way of representing the organ support issues
+https://samcome.github.io/webfont-medical-icons/

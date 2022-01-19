@@ -16,7 +16,7 @@ from pathlib import Path
 import dash_bootstrap_components as dbc
 import pandas as pd
 from dash import dcc, html
-from dotenv import find_dotenv, load_dotenv, dotenv_values
+from dotenv import dotenv_values, find_dotenv, load_dotenv
 from sqlalchemy import create_engine
 
 # .env file stored at project root
@@ -40,7 +40,7 @@ class Config:
         **environ,
         **dotenv_values(dotenv_path),
     }
-    
+
     SERVER_HOST = "0.0.0.0"
     SERVER_PORT = 8009
 
@@ -55,7 +55,7 @@ class Config:
             "bed_code": "Bed code",
             "bay": "Bay",
             "bed": "Bed",
-            'admission_dt': 'Admission',
+            "admission_dt": "Admission",
             "elapsed_los_td": "LoS",
             "mrn": "MRN",
             "name": "Full Name",
@@ -71,11 +71,19 @@ class Config:
         }
     )
 
-    COLS_DTYPE = {
-        "mrn": str
-    }
+    COLS_DTYPE = {"mrn": str}
 
-    COLS_FULL = ["bay", "bed", "name", "mrn", "admission_age_years", "sex", "wim_1", "discharge_ready_1_4h"]
+    COLS_FULL = [
+        "bay",
+        "bed",
+        "name",
+        "mrn",
+        "admission_age_years",
+        "sex",
+        "vent_type_1_4h",
+        "wim_1",
+        "discharge_ready_1_4h",
+    ]
     # COLS_FULL = {i:COLS[i] for i in COLS_FULL}
 
     COLS_SIDEBAR = ["bay", "bed", "name", "team"]
