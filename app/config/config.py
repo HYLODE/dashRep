@@ -68,6 +68,8 @@ class Config:
             "team": "Side",
             "discharge_ready_1_4h": "Discharge",
             "vent_type_1_4h": "Ventilation",
+            "had_rrt_1_4h": "RRT",
+            "organ_icons": "Organs",
         }
     )
 
@@ -80,7 +82,7 @@ class Config:
         "mrn",
         "admission_age_years",
         "sex",
-        "vent_type_1_4h",
+        "organ_icons",
         "wim_1",
         "discharge_ready_1_4h",
     ]

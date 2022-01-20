@@ -22,7 +22,6 @@ from config.config import ConfigFactory, footer, header, nav
 conf = ConfigFactory.factory()
 
 
-ICON_RAIN = '<i class="fa fa-cloud-rain"></i>'
 
 def count_beds_in_ward_skeleton(ward):
     df_skeleton = wng.get_bed_skeleton(ward, conf.SKELETON_DATA_SOURCE, dev=conf.DEV)
@@ -55,7 +54,8 @@ def request_data(ward):
     # data wrangling
     df = wng.wrangle_data(df_orig, conf.COLS)
 
-    df.loc[df['vent_type_1_4h']=="Ventilated", 'vent_type_1_4h'] = ICON_RAIN
+    # prep icons for display etc
+    df = wng.append_organ_icon_col(df)
 
     return df
 
@@ -161,7 +161,7 @@ def gen_datatable_main(json_data, icu):
     )
     # permit icons
     utils.deep_update(
-        utils.get_dict_from_list(COL_DICT, "id", "vent_type_1_4h"),
+        utils.get_dict_from_list(COL_DICT, "id", "organ_icons"),
         dict(presentation="markdown"),
     )
 
@@ -191,6 +191,7 @@ def gen_datatable_main(json_data, icu):
                 {"if": {"column_id": "name"}, "textAlign": "left"},
                 {"if": {"column_id": "name"}, "fontWeight": "bolder"},
                 {"if": {"column_id": "discharge_ready_1_4h"}, "textAlign": "left"},
+                {"if": {"column_id": "organ_icons"}, "textAlign": "left"},
             ],
             style_data={"color": "black", "backgroundColor": "white"},
             # striped rows

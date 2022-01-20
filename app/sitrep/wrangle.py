@@ -4,6 +4,7 @@ Factored out here to make the flow of the code in the app easier to follow
 """
 import json
 import warnings
+from collections import OrderedDict
 
 import arrow
 import numpy as np
@@ -16,15 +17,79 @@ from config.config import ConfigFactory
 
 conf = ConfigFactory.factory()
 
-VENTILATOR_ACRONYMS = {
-    "Room air": "RA",
-    "Oxygen": "O2",
-    "Ventilated": "MV",
-    "Unknown": "?",
-    "HFNO": "HF",
-    "CPAP": "CP",
-}
+VENTILATOR_SEVERITY = OrderedDict({
+    "Room air": 0,
+    "Oxygen": 1,
+    "HFNO": 2,
+    "CPAP": 2,
+    "Ventilated": 3,
+    "Unknown": None,
+})
 
+RRT_SEVERITY = OrderedDict({
+    False: 0,
+    True: 3,
+})
+
+def append_organ_icon_col(df):
+    """
+    Generates a text string that represents organ support by looping
+    through potential cols and finally appending the result as a new
+    col on the table
+    
+    :param      df:   { parameter_description }
+    :type       df:   { type_description }
+    """
+
+    df['organ_icons'] = ""
+
+    # ICON_VENT = '<i class="fa fa-cloud-rain"></i>'
+    # ICON_CLOUDS = '<i class="fa fa-cloud" style="color: grey;"></i>'
+    # ICON_SUN = '<i class="fa fa-sun" style="color: gold;"></i>'
+    ICONS = dict(
+        vent_type_1_4h = 'fa-cloud',
+        had_rrt_1_4h = 'fa-cloud-rain',
+        n_inotropes_1_4h = 'fa-sun',
+    )
+
+    SEVERITIES = dict(
+        vent_type_1_4h = VENTILATOR_SEVERITY,
+        had_rrt_1_4h = RRT_SEVERITY,
+    )
+
+    for col, icon in ICONS.items():
+        # import pdb; pdb.set_trace()
+        if col not in df.columns:
+            continue
+        else:
+
+            # need a loop and a dictionary of severity here
+            for severity, score in SEVERITIES[col].items():
+
+                # colour the icon
+                if score == 0:
+                    colour = 'green'
+                elif score == 1:
+                    colour = 'green'
+                elif score == 2:
+                    colour = 'gold'
+                elif score == 3:
+                    colour = 'red'
+                else:
+                    colour = ''
+
+                # prep the icon string the icon
+                if score is None or colour == '':
+                    s = '?'
+                else:
+                    s = f'<i class="fa {icon}" style="color: {colour}"></i>'
+
+                # TODO: build append to existing string rather than overwrite
+                df.loc[df[col]==severity, 'organ_icons'] = s
+                # df['organ_icons'] = df[col].apply(lambda x: x + s if x == severity else s)
+
+
+    return df
 
 def prep_cols_for_table(df, cols):
     list_of_cols = [{"name": i, "id": i} for i in df.columns if i in cols.keys()]

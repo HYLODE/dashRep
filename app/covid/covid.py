@@ -15,7 +15,7 @@ from dash import dcc, html
 import dash_bootstrap_components as dbc
 
 from config.config import header, nav
-from wrangle.covid import CASES_BY_AGE, HOSP_CASES
+from covid.wrangle import CASES_BY_AGE, HOSP_CASES
 
 from app import app
 
