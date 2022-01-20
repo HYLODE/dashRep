@@ -264,3 +264,4 @@ def write_data(df: pd.DataFrame, table: str,  engine, replace: bool =False):
     else:
         dfn.to_sql(table, con=engine, index=False, if_exists='append')
 
+

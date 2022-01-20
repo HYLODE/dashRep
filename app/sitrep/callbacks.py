@@ -15,7 +15,7 @@ import dash_bootstrap_components as dbc
 from dash import dcc, html
 
 from app import app
-from wrangle import sitrep as wng
+import sitrep.wrangle as wng
 from utils import utils
 from config.config import ConfigFactory, footer, header, nav
 

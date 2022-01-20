@@ -4,7 +4,7 @@ For debugging
 from config.config import ConfigFactory
 from dash import dash_table as dt
 from dash import dcc, html
-from wrangle import sitrep as wng
+from sitrep import wrangle as wng
 
 conf = ConfigFactory.factory()
 

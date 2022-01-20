@@ -13,7 +13,6 @@ from config.config import ConfigFactory, footer, header, nav
 from dash import Dash, Input, Output, State
 from dash import dash_table as dt
 from dash import dcc, html
-from wrangle import sitrep as wng
 
 from app import app
 from utils import utils
