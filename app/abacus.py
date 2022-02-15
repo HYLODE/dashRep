@@ -76,6 +76,19 @@ def display_minus_total(minus_total):
     return [html.Div(f"{total} discharges today")]
 
 
+@app.callback(
+    [Output("census_next_display", "children")],
+    [
+        Input("census_now", "value"),
+        Input("plus_total", "data"),
+        Input("minus_total", "data"),
+    ]
+)
+def display_census_total(census_now, plus_total, minus_total):
+    total = str(census_now + plus_total - minus_total)
+    return [html.Div(f"{total} census tomorrow")]
+
+
 # ============
 # Patients IN
 # ============
@@ -235,6 +248,7 @@ main = html.Div([
             dbc.Col(
                 [
                     html.H3("Current patients"),
+                    html.Div(id="census_next_display"),
                 ]),
 
             dbc.Col(
