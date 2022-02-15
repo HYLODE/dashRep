@@ -14,6 +14,7 @@ from perrt.layout import perrt
 from pacu.layout import pacu
 from discharges.layout import discharges
 from landing import landing
+from abacus import abacus
 
 from app import app
 
@@ -48,6 +49,8 @@ def display_page(pathname):
     elif pathname == "/":
         # Landing page will be served at the basic
         return landing
+    elif pathname == "/abacus":
+        return abacus
     else:
         # TODO return both the code and the page
         return "404"

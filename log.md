@@ -41,3 +41,18 @@ reorganise layout so wider table with 'dials' at top
 rebuilt the app on hyfield
 moved the repo into hylode
 now going to try and run the infection control query
+
+## 2022-02-15
+rebuilding the whole project on new mac
+
+```sh
+git clone ...
+cd dashRep
+poetry install # wait 5-6mins
+poetry shell
+```
+
+## 2022-02-15
+Now start building the demo abacus web page
+
+
