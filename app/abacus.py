@@ -41,7 +41,16 @@ def slider(id: str, value=0, min=0, max=5):
 )
 def store_plus_total(ed, pacu_el, pacu_em, perrt, tx_in, ):
     total = (ed + pacu_el + pacu_em + perrt + tx_in)
-    return total
+    return (total, )
+
+
+@app.callback(
+    [Output("plus_total_display", "children")],
+    [Input("plus_total", "data")]
+)
+def display_plus_total(plus_total):
+    total = str(plus_total)
+    return [html.Div(f"{total} admissions today")]
 
 
 @app.callback(
@@ -55,10 +64,17 @@ def store_plus_total(ed, pacu_el, pacu_em, perrt, tx_in, ):
 )
 def store_minus_total(step_down, discharges, tx_out, eol, ):
     total = step_down + discharges + tx_out + eol
-    return total
+    return (total, )
 
 
-@app.callback
+@app.callback(
+    [Output("minus_total_display", "children")],
+    [Input("minus_total", "data")]
+)
+def display_minus_total(minus_total):
+    total = str(minus_total)
+    return [html.Div(f"{total} discharges today")]
+
 
 # ============
 # Patients IN
@@ -212,7 +228,7 @@ main = html.Div([
             dbc.Col(
                 [
                     html.H3("Admissions"),
-                    html.Div(id="plus_total_string"),
+                    html.Div(id="plus_total_display"),
 
                 ]),
 
@@ -224,7 +240,7 @@ main = html.Div([
             dbc.Col(
                 [
                     html.H3("Discharges"),
-                    html.Div(id="minus_total_string"),
+                    html.Div(id="minus_total_display"),
                 ]),
             ],
             ),
