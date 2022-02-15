@@ -12,6 +12,7 @@ from config import header, nav, footer
 
 from app import app
 
+
 def slider(id: str, value=0, min=0, max=5):
     marks = {str(i): str(i) for i in range(min, max+1)}
     slider = daq.Slider(
@@ -29,19 +30,39 @@ def slider(id: str, value=0, min=0, max=5):
 
 
 @app.callback(
-    # output=dict(json_data=Output("arrivals", "children")),  # output data to store
-    Output("arrivals_total", "children"),
-    inputs=dict(
-        ed=Input("arrivals_ed", "value"),
-        pacu_el=Input("arrivals_pacu_el", "value"),
-        pacu_em=Input("arrivals_pacu_em", "value"),
-        perrt=Input("arrivals_perrt", "value"),
-        tx_in=Input("arrivals_transfers_in", "value"),
-    ),
+    [Output("plus_total", "data")],
+    [
+        Input("plus_ed", "value"),
+        Input("plus_pacu_el", "value"),
+        Input("plus_pacu_em", "value"),
+        Input("plus_perrt", "value"),
+        Input("plus_transfers", "value"),
+    ],
 )
-def admissions_total(ed, pacu_el, pacu_em, perrt, tx_in):
-    total = ed + pacu_el + pacu_em + perrt + tx_in
-    return f'{total} admissions today'
+def store_plus_total(ed, pacu_el, pacu_em, perrt, tx_in, ):
+    total = (ed + pacu_el + pacu_em + perrt + tx_in)
+    return total
+
+
+@app.callback(
+    [Output("minus_total", "data")],
+    [
+        Input("minus_step_down", "value"),
+        Input("minus_discharges", "value"),
+        Input("minus_transfers", "value"),
+        Input("minus_eol", "value"),
+    ]
+)
+def store_minus_total(step_down, discharges, tx_out, eol, ):
+    total = step_down + discharges + tx_out + eol
+    return total
+
+
+@app.callback
+
+# ============
+# Patients IN
+# ============
 
 
 card_ed = dbc.Card(
@@ -50,7 +71,7 @@ card_ed = dbc.Card(
         dbc.CardBody(
             [
                 html.P("Predicted admissions", className="card-text"),
-                slider("arrivals_ed"),
+                slider("plus_ed"),
 
             ]
         ),
@@ -63,7 +84,7 @@ card_pacu_el = dbc.Card(
         dbc.CardBody(
             [
                 html.P("Predicted admissions", className="card-text"),
-                slider("arrivals_pacu_el"),
+                slider("plus_pacu_el"),
 
             ]
         ),
@@ -76,7 +97,7 @@ card_pacu_em = dbc.Card(
         dbc.CardBody(
             [
                 html.P("Predicted admissions", className="card-text"),
-                slider("arrivals_pacu_em"),
+                slider("plus_pacu_em"),
 
             ]
         ),
@@ -89,7 +110,7 @@ card_perrt = dbc.Card(
         dbc.CardBody(
             [
                 html.P("Predicted admissions", className="card-text"),
-                slider("arrivals_perrt"),
+                slider("plus_perrt"),
 
             ]
         ),
@@ -103,36 +124,42 @@ card_transfer_in = dbc.Card(
         dbc.CardBody(
             [
                 html.P("Predicted admissions", className="card-text"),
-                slider("arrivals_transfers_in"),
+                slider("plus_transfers"),
 
             ]
         ),
     ],
 )
+
+# ================
+# Current patients
+# ================
 
 card_patients = dbc.Card(
     [
         dbc.CardHeader("Patient list"),
         dbc.CardBody(
             [
-                html.H4("Card title",
-                        className="card-title"),
-                html.P("This is some card text",
-                       className="card-text"),
+                html.P("Current census", className="card-text"),
+                slider("census_now", value=30, max=35),
+
             ]
         ),
     ],
 )
+
+# ============
+# Patients out
+# ============
 
 card_stepdowns = dbc.Card(
     [
         dbc.CardHeader("Ward step downs"),
         dbc.CardBody(
             [
-                html.H4("Card title",
-                        className="card-title"),
-                html.P("This is some card text",
-                       className="card-text"),
+                html.P("Predicted discharges", className="card-text"),
+                slider("minus_step_down"),
+
             ]
         ),
     ],
@@ -143,10 +170,9 @@ card_discharges = dbc.Card(
         dbc.CardHeader("Discharge Home"),
         dbc.CardBody(
             [
-                html.H4("Card title",
-                        className="card-title"),
-                html.P("This is some card text",
-                       className="card-text"),
+                html.P("Predicted discharges", className="card-text"),
+                slider("minus_discharges"),
+
             ]
         ),
     ],
@@ -157,10 +183,9 @@ card_transfer_out = dbc.Card(
         dbc.CardHeader("Transfer out"),
         dbc.CardBody(
             [
-                html.H4("Card title",
-                        className="card-title"),
-                html.P("This is some card text",
-                       className="card-text"),
+                html.P("Predicted discharges", className="card-text"),
+                slider("minus_transfers"),
+
             ]
         ),
     ],
@@ -171,14 +196,14 @@ card_eol = dbc.Card(
         dbc.CardHeader("End of life"),
         dbc.CardBody(
             [
-                html.H4("Card title",
-                        className="card-title"),
-                html.P("This is some card text",
-                       className="card-text"),
+                html.P("Predicted discharges", className="card-text"),
+                slider("minus_eol"),
+
             ]
         ),
     ],
 )
+
 
 main = html.Div([
     dbc.Row(dbc.Col(html.Div("Full width row"))),
@@ -187,7 +212,7 @@ main = html.Div([
             dbc.Col(
                 [
                     html.H3("Admissions"),
-                    html.Div(id="arrivals_total"),
+                    html.Div(id="plus_total_string"),
 
                 ]),
 
@@ -199,6 +224,7 @@ main = html.Div([
             dbc.Col(
                 [
                     html.H3("Discharges"),
+                    html.Div(id="minus_total_string"),
                 ]),
             ],
             ),
@@ -232,6 +258,14 @@ main = html.Div([
             ),
 ])
 
+# use this to store dash components that you don't need to 'see'
+dash_only = html.Div(
+    [
+
+        dcc.Store(id="plus_total"),
+        dcc.Store(id="minus_total"),
+    ]
+)
 
 abacus = dbc.Container(
     fluid=True,
@@ -240,6 +274,6 @@ abacus = dbc.Container(
         nav,
         main,
         footer,
-        # dash_only,
+        dash_only,
     ],
 )
