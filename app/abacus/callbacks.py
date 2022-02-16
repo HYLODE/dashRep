@@ -111,13 +111,10 @@ def gen_datatable_main(json_data):
     return dto
 
 
-@app.callback(
-    Output("abacus-census-slider-div", "children"),
-    Input("abacus-source-data", "data"),
-)
-def count_patients_in_datatable(json_data):
-    df = pd.DataFrame.from_records(json_data)
-    value =  df.shape[0]
+def slider_census():
+    ward = 'T03'.lower()
+    df = request_data(ward)
+    value =  df['mrn'].nunique()
     _min, _max, _step = 0, 36, 5
     marks = {str(i): str(i) for i in range(_min, _max+1, _step)}
     slider = dcc.Slider(

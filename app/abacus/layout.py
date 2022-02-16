@@ -95,7 +95,8 @@ card_patients = dbc.Card(
         dbc.CardBody(
             [
                 html.P("Current census", className="card-text"),
-                html.Div(id="abacus-census-slider-div"),
+                callbacks.slider_census(),
+                # html.Div(id="abacus-census-slider-div"),
                 # callbacks.slider("census_now", value=callbacks.count_patients_in_datatable(), max=35),
                 html.Div(id="abacus-datatable-main"),
 
