@@ -1,13 +1,137 @@
-from app import app
-from dash import dcc, html
-import dash_bootstrap_components as dbc
-import dash_daq as daq
-from dash import Dash, Input, Output, State
+import pandas as pd
 
-from config.config import ConfigFactory, footer, header, nav
 from dash import dcc, html
+from dash import Input, Output
+from dash import dash_table as dt
+
+import dash_bootstrap_components as dbc
+
+from app import app
+from config.config import ConfigFactory
+
+# use the function from sitrep to pull and clean data
+from sitrep.callbacks import request_data
+from utils import utils
 
 conf = ConfigFactory.factory()
+
+
+@app.callback(
+    output=dict(json_data=Output("abacus-source-data", "data")),
+    inputs=dict(intervals=Input("abacus-interval-data", "n_intervals"), ),
+    # prevent_initial_call=True,  # suppress_callback_exceptions does not work
+)
+def data_io(intervals):
+    """
+    stores the data in a dcc.Store
+    runs on load and will be triggered each time the table is updated or the REFRESH_INTERVAL elapses
+    """
+    ward = 'T03'  # placeholder hardcoded; need to move to selection
+    ward = ward.lower()
+    df = request_data(ward)
+    print(df.head())
+    return dict(json_data=df.to_dict("records"))
+
+
+@app.callback(
+    Output("abacus-datatable-main", "children"),
+    Input("abacus-source-data", "data"),
+)
+def gen_datatable_main(json_data):
+
+    # datatable defined by columns and by input data
+    # abstract this to function so that you can guarantee the same data each time
+
+    COL_DICT = [
+        {"name": v, "id": k} for k, v in conf.COLS.items() if k in conf.COLS_FULL
+    ]
+
+    # prepare properties of columns
+    # updates b/c list are mutable
+    utils.deep_update(
+        utils.get_dict_from_list(COL_DICT, "id", "wim_1"), dict(editable=True)
+    )
+    utils.deep_update(
+        utils.get_dict_from_list(COL_DICT, "id", "discharge_ready_1_4h"),
+        dict(editable=True),
+    )
+    utils.deep_update(
+        utils.get_dict_from_list(COL_DICT, "id", "discharge_ready_1_4h"),
+        dict(presentation="dropdown"),
+    )
+
+    DISCHARGE_OPTIONS = ["Ready", "No", "Review"]
+
+    dto = (
+        dt.DataTable(
+            id="tbl-main",
+            columns=COL_DICT,
+            data=json_data,
+            editable=False,
+            dropdown={
+                "discharge_ready_1_4h": {
+                    "options": [{"label": i, "value": i} for i in DISCHARGE_OPTIONS],
+                    "clearable": False,
+                },
+            },
+            # style_as_list_view=True,  # remove col lines
+            style_cell={
+                "fontSize": 12,
+                # 'font-family':'sans-serif',
+                "padding": "3px",
+            },
+            style_cell_conditional=[
+                {"if": {"column_id": "bay"}, "textAlign": "right"},
+                {"if": {"column_id": "bed"}, "textAlign": "left"},
+                {"if": {"column_id": "name"}, "textAlign": "left"},
+                {"if": {"column_id": "name"}, "fontWeight": "bolder"},
+                {"if": {"column_id": "discharge_ready_1_4h"}, "textAlign": "left"},
+            ],
+            style_data={"color": "black", "backgroundColor": "white"},
+            # striped rows
+            style_data_conditional=[
+                {
+                    "if": {"row_index": "odd"},
+                    "backgroundColor": "rgb(220, 220, 220)",
+                }
+            ],
+            sort_action="native",
+            cell_selectable=True,  # possible to click and navigate cells
+            # row_selectable="single",
+        ),
+    )
+
+    # wrap in container
+    dto = [
+        dbc.Container(
+            dto,
+            className="dbc",
+        )
+    ]
+    return dto
+
+
+@app.callback(
+    Output("abacus-census-slider-div", "children"),
+    Input("abacus-source-data", "data"),
+)
+def count_patients_in_datatable(json_data):
+    df = pd.DataFrame.from_records(json_data)
+    value =  df.shape[0]
+    _min, _max, _step = 0, 36, 5
+    marks = {str(i): str(i) for i in range(_min, _max+1, _step)}
+    slider = dcc.Slider(
+        id="abacus-census-slider",
+        min=_min,
+        max=_max,
+        value=value,
+        marks=marks,
+        step=1, # i.e. patients are integers
+        updatemode="drag",
+        tooltip={"placement": "top", "always_visible": True},
+    )
+    return slider
+
 
 
 def slider(id: str, value=0, min=0, max=5):
@@ -78,7 +202,7 @@ def display_minus_total(minus_total):
 @app.callback(
     [Output("census_now_display", "children")],
     [
-        Input("census_now", "value"),
+        Input("abacus-census-slider", "value"),
     ]
 )
 def display_census_now(census_now):
@@ -89,11 +213,12 @@ def display_census_now(census_now):
 @app.callback(
     [Output("census_next_display", "children")],
     [
-        Input("census_now", "value"),
+        Input("abacus-census-slider", "value"),
         Input("plus_total", "data"),
         Input("minus_total", "data"),
     ]
 )
 def display_census_next(census_now, plus_total, minus_total):
+    census_now = int(census_now)
     total = str(census_now + plus_total - minus_total)
     return [html.Div(f"{total} census tomorrow")]

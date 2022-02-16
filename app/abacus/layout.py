@@ -95,7 +95,9 @@ card_patients = dbc.Card(
         dbc.CardBody(
             [
                 html.P("Current census", className="card-text"),
-                callbacks.slider("census_now", value=30, max=35),
+                html.Div(id="abacus-census-slider-div"),
+                # callbacks.slider("census_now", value=callbacks.count_patients_in_datatable(), max=35),
+                html.Div(id="abacus-datatable-main"),
 
             ]
         ),
@@ -222,6 +224,9 @@ dash_only = html.Div(
 
         dcc.Store(id="plus_total"),
         dcc.Store(id="minus_total"),
+
+        dcc.Interval(id="abacus-interval-data", interval=conf.REFRESH_INTERVAL, n_intervals=0),
+        dcc.Store(id="abacus-source-data"),
     ]
 )
 
