@@ -1,5 +1,6 @@
 """
 Abacus demo
+TODO: demonstrate DEMAND by working with open beds so allow the total to exceed the available
 """
 from dash import dcc, html
 import dash_bootstrap_components as dbc
@@ -15,13 +16,15 @@ from app import app
 
 def slider(id: str, value=0, min=0, max=5):
     marks = {str(i): str(i) for i in range(min, max+1)}
-    slider = daq.Slider(
+    slider = dcc.Slider(
         id=id,
         min=min,
         max=max,
         value=value,
         step=1,
-        marks=marks
+        marks=marks,
+        updatemode="drag",
+        tooltip={"placement": "top", "always_visible": True},
     )
     res = html.Div([slider],
                    # now pad below by x% of the viewport height
@@ -77,6 +80,17 @@ def display_minus_total(minus_total):
 
 
 @app.callback(
+    [Output("census_now_display", "children")],
+    [
+        Input("census_now", "value"),
+    ]
+)
+def display_census_now(census_now):
+    total = str(census_now)
+    return [html.Div(f"{total} census now")]
+
+
+@app.callback(
     [Output("census_next_display", "children")],
     [
         Input("census_now", "value"),
@@ -84,10 +98,9 @@ def display_minus_total(minus_total):
         Input("minus_total", "data"),
     ]
 )
-def display_census_total(census_now, plus_total, minus_total):
+def display_census_next(census_now, plus_total, minus_total):
     total = str(census_now + plus_total - minus_total)
     return [html.Div(f"{total} census tomorrow")]
-
 
 # ============
 # Patients IN
@@ -235,7 +248,10 @@ card_eol = dbc.Card(
 
 
 main = html.Div([
-    dbc.Row(dbc.Col(html.Div("Full width row"))),
+    dbc.Row(dbc.Col([
+        html.Div("Full width row"),
+        html.Div(id="census_next_display"),
+    ])),
 
     dbc.Row([
             dbc.Col(
@@ -248,7 +264,7 @@ main = html.Div([
             dbc.Col(
                 [
                     html.H3("Current patients"),
-                    html.Div(id="census_next_display"),
+                    html.Div(id="census_now_display"),
                 ]),
 
             dbc.Col(
