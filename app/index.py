@@ -14,7 +14,7 @@ from perrt.layout import perrt
 from pacu.layout import pacu
 from discharges.layout import discharges
 from landing import landing
-from abacus import abacus
+from abacus.layout import abacus
 
 from app import app
 

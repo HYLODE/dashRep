@@ -7,9 +7,11 @@ import dash_bootstrap_components as dbc
 import dash_daq as daq
 from dash import Dash, Input, Output, State
 
+from config.config import ConfigFactory, footer, header, nav
+from dash import dcc, html
 
-from config import ConfigFactory
-from config import header, nav, footer
+conf = ConfigFactory.factory()
+
 
 from app import app
 
