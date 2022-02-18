@@ -6,7 +6,8 @@ from dash import dash_table as dt
 from dash import dcc, html
 # from ed.ed import get_dataframe, filter_same, prepare_ridge_densities
 from ed import ed
-from ridgeplot import ridgeplot
+import plotly.graph_objects as go
+# from ridgeplot import ridgeplot
 # use the function from sitrep to pull and clean data
 from sitrep.callbacks import request_data
 
@@ -24,9 +25,9 @@ conf = ConfigFactory.factory()
 @app.callback(
     Output("abacus-ed-demand", "children"),
     Input("abacus-interval-data", "n_intervals"),
+    Input("plus_ed", "value"),
 )
-def ed_demand_plot(json_data):
-    # import pdb; pdb.set_trace()
+def ed_demand_plot(json_data, ed_slider):
     df = ed.get_dataframe(
         sql_script=ed.AGG_SQL_FILE,
         csv_file=ed.AGG_CSV_FILE,
@@ -35,22 +36,29 @@ def ed_demand_plot(json_data):
     )
     df = ed.wrangle_ed_agg(df)
     df = ed.filter_same(df)
-    labels, densities = ed.prepare_ridge_densities(df)
-    fig = ridgeplot(
-        densities=densities,
-        labels=labels,
-        colorscale="portland",
-        colormode="mean-minmax",
-        spacing=1 / 10,
-    )
+
+    fig = go.Figure()
+    for i in df['days'].unique():
+        dfi = df[df['days'] == i]
+
+        colour = 'rgba(255,38,0,1)' if i == 0 else 'rgba(0,0,0,0.2)'
+        fig.add_trace(go.Scatter(
+            x=dfi['num_adm_pred'] / 10,
+            y=dfi['probs'],
+            mode="lines",
+            marker_color=colour,
+            ))
+
+    fig.add_shape(type='line',
+            x0=ed_slider, y0=0,
+            x1=ed_slider, y1=df['probs'].max(),
+            line=dict(color="blue")
+            )
+    fig.update_xaxes(range=[0,4])
     fig.update_layout(showlegend=False)
-    fig.update_layout(
-        xaxis_title="Inpatient bed demand",
-        # yaxis_title=f"Predictions from days past<br>(i.e. up to {max(labels)} days ago)",
-        yaxis_title=f"Recent predictions)",
-    )
+    fig.update_layout(xaxis_title="Predicted ICU bed demand", yaxis_title="")
     fig.update_layout(template="plotly_white")
-    # fig.update_layout( width=400, height=300)
+    fig.update_layout(height=300)
     config = {
         "displayModeBar": False,
         "staticPlot": True,
