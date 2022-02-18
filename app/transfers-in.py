@@ -5,12 +5,13 @@
 # Display an expandable datatable in card
 # Store updates to that table 
 
+import pandas as pd
 import dash
 from dash import dcc, html
 import dash_bootstrap_components as dbc
 
-from config.config import ConfigFactory
 
+from config.config import ConfigFactory
 conf = ConfigFactory.factory()
 
 
@@ -24,6 +25,34 @@ app = dash.Dash(
     ],
     suppress_callback_exceptions=True,
 )
+
+def make_fake_df(n_rows):
+    # run the imports here since this function won't be needed in production
+    from faker import Faker
+    from faker.providers import DynamicProvider
+    local_hospitals_provider = DynamicProvider(
+        provider_name="local_hospital",
+        elements=['Royal Free', 'Whittington', 'North Middlesex', 'Barnet']
+    )
+    fake = Faker('en_GB')
+    fake.add_provider(local_hospitals_provider)
+    referrals = []
+    for _ in range(n_rows):
+        referrals.append(dict(
+            name = fake.name(),
+            hospital = fake.local_hospital()
+        ))
+
+    df = pd.DataFrame(referrals)
+    return df
+
+
+print(make_fake_df(2))
+
+
+
+
+
 
 app.layout = html.Div("hello world" )
 
