@@ -218,4 +218,5 @@ def display_census_now(census_now):
 def display_census_next(census_now, plus_total, minus_total):
     census_now = int(census_now)
     total = str(census_now + plus_total - minus_total)
-    return [html.Div(f"{total} census tomorrow")]
+    # TODO: colour the alert wrt to the maximum available beds
+    return [dbc.Alert(f"{total} calculated census tomorrow", color="danger")]

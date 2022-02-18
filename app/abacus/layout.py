@@ -2,6 +2,7 @@
 Abacus demo
 TODO: demonstrate DEMAND by working with open beds so allow the total to exceed the available
 """
+from . import callbacks
 from app import app
 from dash import dcc, html
 import dash_bootstrap_components as dbc
@@ -9,9 +10,6 @@ import dash_bootstrap_components as dbc
 from config.config import ConfigFactory, footer, header, nav
 
 conf = ConfigFactory.factory()
-
-from . import callbacks
-
 
 
 # ============
@@ -164,9 +162,9 @@ card_eol = dbc.Card(
 
 main = html.Div([
     dbc.Row(dbc.Col([
-        html.Div("Full width row"),
+        # html.Div("Ward bed management"),
         html.Div(id="census_next_display"),
-    ])),
+    ], md={'offset': 3, 'size': 6})),
 
     dbc.Row([
             dbc.Col(
@@ -174,19 +172,19 @@ main = html.Div([
                     html.H3("Admissions"),
                     html.Div(id="plus_total_display"),
 
-                ]),
+                ], md=3),
 
             dbc.Col(
                 [
                     html.H3("Current patients"),
                     html.Div(id="census_now_display"),
-                ]),
+                ], md=6),
 
             dbc.Col(
                 [
                     html.H3("Discharges"),
                     html.Div(id="minus_total_display"),
-                ]),
+                ], md=3),
             ],
             ),
 
@@ -199,13 +197,13 @@ main = html.Div([
                     card_ed,
                     card_perrt,
                     card_transfer_in,
-                ]),
+                ], md=3),
 
             dbc.Col(
                 [
                     # Current patients
                     card_patients,
-                ]),
+                ], md=6),
 
             dbc.Col(
                 [
@@ -214,7 +212,7 @@ main = html.Div([
                     card_discharges,
                     card_transfer_out,
                     card_eol,
-                ]),
+                ], md=3),
             ],
             ),
 ])
@@ -226,7 +224,8 @@ dash_only = html.Div(
         dcc.Store(id="plus_total"),
         dcc.Store(id="minus_total"),
 
-        dcc.Interval(id="abacus-interval-data", interval=conf.REFRESH_INTERVAL, n_intervals=0),
+        dcc.Interval(id="abacus-interval-data",
+                     interval=conf.REFRESH_INTERVAL, n_intervals=0),
         dcc.Store(id="abacus-source-data"),
     ]
 )
