@@ -4,12 +4,11 @@ from config.config import ConfigFactory
 from dash import Input, Output
 from dash import dash_table as dt
 from dash import dcc, html
-# use the function from sitrep to pull and clean data
-from sitrep.callbacks import request_data
-
 # from ed.ed import get_dataframe, filter_same, prepare_ridge_densities
 from ed import ed
 from ridgeplot import ridgeplot
+# use the function from sitrep to pull and clean data
+from sitrep.callbacks import request_data
 
 from app import app
 from utils import utils
@@ -52,13 +51,18 @@ def ed_demand_plot(json_data):
     )
     fig.update_layout(template="plotly_white")
     # fig.update_layout( width=400, height=300)
-    config = {"displayModeBar":False, "staticPlot":True, "autosizable":True, }
-    return dcc.Graph(figure=fig,config=config)
+    config = {
+        "displayModeBar": False,
+        "staticPlot": True,
+        "autosizable": True,
+    }
+    return dcc.Graph(figure=fig, config=config)
 
 
 # ****************************************************************************
 # *                                 stepdowns                                *
 # ****************************************************************************
+
 
 @app.callback(
     Output("abacus-data-stepdowns", "data"),
@@ -134,6 +138,7 @@ def gen_datatable_stepdowns(stepdowns_json):
         )
     ]
     return dto
+
 
 # ****************************************************************************
 # *                          load main census table                          *
@@ -280,9 +285,11 @@ def slider(id: str, value=0, min=0, max=5):
     )
     return res
 
+
 # ****************************************************************************
-# *                              running totals                              *
+# *                                  Pluses                                  *
 # ****************************************************************************
+
 
 @app.callback(
     [Output("plus_total", "data")],
@@ -308,7 +315,21 @@ def store_plus_total(
 @app.callback([Output("plus_total_display", "children")], [Input("plus_total", "data")])
 def display_plus_total(plus_total):
     total = str(plus_total)
-    return [html.Div(f"{total} admissions today")]
+    msg = f"{total} Admissions budgeted today"
+    card = dbc.Card(
+        [
+            dbc.CardHeader(msg, className="card-title")
+        ],
+        color="dark", 
+        inverse=True,
+        style={"margin-top": "1vh"},
+    )
+    return (card, )
+
+
+# ****************************************************************************
+# *                                 # Minuses                                *
+# ****************************************************************************
 
 
 @app.callback(
@@ -342,7 +363,21 @@ def store_minus_total(
 )
 def display_minus_total(minus_total):
     total = str(minus_total)
-    return [html.Div(f"{total} discharges today")]
+    msg = f"{total} Discharges budgeted today"
+    card = dbc.Card(
+        [
+            dbc.CardHeader(msg, className="card-title")
+        ],
+        color="dark", 
+        inverse=True,
+        style={"margin-top": "1vh"},
+    )
+    return (card, )
+
+
+# ****************************************************************************
+# *                              running totals                              *
+# ****************************************************************************
 
 
 @app.callback(
@@ -353,7 +388,16 @@ def display_minus_total(minus_total):
 )
 def display_census_now(census_now):
     total = str(census_now)
-    return [html.Div(f"{total} census now")]
+    msg = f"{total} current patients"
+    card = dbc.Card(
+        [
+            dbc.CardHeader(msg, className="card-title")
+        ],
+        color="dark", 
+        inverse=True,
+        style={"margin-top": "1vh"},
+    )
+    return (card, )
 
 
 @app.callback(

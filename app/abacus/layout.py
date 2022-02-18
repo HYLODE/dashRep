@@ -174,34 +174,51 @@ card_eol = dbc.Card(
     ],
 )
 
+# ****************************************************************************
+# * BEGIN:                         Main layout                               *
+# ****************************************************************************
+
 
 main = html.Div([
-    dbc.Row(dbc.Col([
-        # html.Div("Ward bed management"),
-        html.Div(id="census_next_display"),
-    ], md={'offset': 3, 'size': 6})),
 
+
+# ****************************************************************************
+# *                      Row 1: Current census                               *
+# ****************************************************************************
     dbc.Row([
             dbc.Col(
                 [
-                    html.H3("Admissions"),
+                    # html.H3("Admissions"),
                     html.Div(id="plus_total_display"),
 
                 ], md=3),
 
             dbc.Col(
                 [
-                    html.H3("Current patients"),
+                    # html.H3("Current patients"),
                     html.Div(id="census_now_display"),
                 ], md=6),
 
             dbc.Col(
                 [
-                    html.H3("Discharges"),
+                    # html.H3("Discharges"),
                     html.Div(id="minus_total_display"),
                 ], md=3),
             ],
             ),
+
+# ****************************************************************************
+# *                      Row 2: Predicted census in 24hr                     *
+# ****************************************************************************
+
+    dbc.Row(dbc.Col([
+        # html.Div("Ward bed management"),
+        html.Div(id="census_next_display"),
+    ], md={'offset': 3, 'size': 6})),
+
+# ****************************************************************************
+# *                      Row 3: Detail cards                                 *
+# ****************************************************************************
 
     dbc.Row([
             dbc.Col(
@@ -231,6 +248,11 @@ main = html.Div([
             ],
             ),
 ])
+
+# ****************************************************************************
+# * END  :                         Main layout                               *
+# ****************************************************************************
+
 
 # use this to store dash components that you don't need to 'see'
 dash_only = html.Div(
