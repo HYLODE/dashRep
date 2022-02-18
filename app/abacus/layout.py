@@ -112,8 +112,10 @@ card_stepdowns = dbc.Card(
         dbc.CardHeader("Ward step downs"),
         dbc.CardBody(
             [
-                html.P("Predicted discharges", className="card-text"),
-                callbacks.slider("minus_step_down"),
+                # TODO: add a nice numeric indicator
+                html.P("Ready for ward stepdown", className="card-text"),
+                # callbacks.slider("minus_step_down"),
+                html.Div(id="abacus-stepdowns-datatable"),
 
             ]
         ),
@@ -227,6 +229,7 @@ dash_only = html.Div(
         dcc.Interval(id="abacus-interval-data",
                      interval=conf.REFRESH_INTERVAL, n_intervals=0),
         dcc.Store(id="abacus-source-data"),
+        dcc.Store(id="abacus-data-stepdowns"),
     ]
 )
 

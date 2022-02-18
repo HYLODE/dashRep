@@ -1,24 +1,99 @@
+import dash_bootstrap_components as dbc
 import pandas as pd
-
-from dash import dcc, html
+from config.config import ConfigFactory
 from dash import Input, Output
 from dash import dash_table as dt
-
-import dash_bootstrap_components as dbc
-
-from app import app
-from config.config import ConfigFactory
-
+from dash import dcc, html
 # use the function from sitrep to pull and clean data
 from sitrep.callbacks import request_data
+
+from app import app
 from utils import utils
 
 conf = ConfigFactory.factory()
 
 
 @app.callback(
+    Output("abacus-data-stepdowns", "data"),
+    Input("abacus-tbl-census", "data"),
+)
+def read_discharges(census_json) -> dict:
+    """
+    Reads from the main census table those patients with a discharge flag
+    Returns just that filtered list
+
+
+    :param      census_json:  The census json
+    :type       census_json:  str
+
+    :returns:   { description_of_the_return_value }
+    :rtype:     str
+    """
+    # Look for discharges
+    DISCHARGE_OPTIONS = ["Ready", "No", "Review"]
+
+    df = pd.DataFrame.from_records(census_json)
+    df = df[df["discharge_ready_1_4h"] == "Ready"]
+    return df.to_dict("records")
+
+
+@app.callback(
+    Output("abacus-stepdowns-datatable", "children"),
+    Input("abacus-data-stepdowns", "data"),
+)
+def gen_datatable_stepdowns(stepdowns_json):
+    # df = pd.DataFrame.from_records(stepdowns_json)
+    _cols = ["bed", "name"]
+    COL_DICT = [{"name": v, "id": k} for k, v in conf.COLS.items() if k in _cols]
+
+    dto = (
+        dt.DataTable(
+            id="abacus-tbl-stepdowns",
+            columns=COL_DICT,
+            data=stepdowns_json,
+            editable=False,
+            style_as_list_view=True,  # remove col lines
+            style_cell={
+                "fontSize": 12,
+                # 'font-family':'sans-serif',
+                "padding": "3px",
+            },
+            style_cell_conditional=[
+                # {"if": {"column_id": "bay"}, "textAlign": "right"},
+                # {"if": {"column_id": "bed"}, "textAlign": "left"},
+                {"if": {"column_id": "name"}, "textAlign": "left"},
+                {"if": {"column_id": "name"}, "fontWeight": "bolder"},
+                # {"if": {"column_id": "discharge_ready_1_4h"}, "textAlign": "left"},
+            ],
+            style_data={"color": "black", "backgroundColor": "white"},
+            # striped rows
+            style_data_conditional=[
+                {
+                    "if": {"row_index": "odd"},
+                    "backgroundColor": "rgb(220, 220, 220)",
+                }
+            ],
+            # sort_action="native",
+            # cell_selectable=True,  # possible to click and navigate cells
+            # row_selectable="single",
+        ),
+    )
+
+    # wrap in container
+    dto = [
+        dbc.Container(
+            dto,
+            className="dbc",
+        )
+    ]
+    return dto
+
+
+@app.callback(
     output=dict(json_data=Output("abacus-source-data", "data")),
-    inputs=dict(intervals=Input("abacus-interval-data", "n_intervals"), ),
+    inputs=dict(
+        intervals=Input("abacus-interval-data", "n_intervals"),
+    ),
     # prevent_initial_call=True,  # suppress_callback_exceptions does not work
 )
 def data_io(intervals):
@@ -26,7 +101,7 @@ def data_io(intervals):
     stores the data in a dcc.Store
     runs on load and will be triggered each time the table is updated or the REFRESH_INTERVAL elapses
     """
-    ward = 'T03'  # placeholder hardcoded; need to move to selection
+    ward = "T03"  # placeholder hardcoded; need to move to selection
     ward = ward.lower()
     df = request_data(ward)
     print(df.head())
@@ -64,7 +139,7 @@ def gen_datatable_main(json_data):
 
     dto = (
         dt.DataTable(
-            id="tbl-main",
+            id="abacus-tbl-census",
             columns=COL_DICT,
             data=json_data,
             editable=False,
@@ -112,27 +187,26 @@ def gen_datatable_main(json_data):
 
 
 def slider_census():
-    ward = 'T03'.lower()
+    ward = "T03".lower()
     df = request_data(ward)
-    value =  df['mrn'].nunique()
+    value = df["mrn"].nunique()
     _min, _max, _step = 0, 36, 5
-    marks = {str(i): str(i) for i in range(_min, _max+1, _step)}
+    marks = {str(i): str(i) for i in range(_min, _max + 1, _step)}
     slider = dcc.Slider(
         id="abacus-census-slider",
         min=_min,
         max=_max,
         value=value,
         marks=marks,
-        step=1, # i.e. patients are integers
+        step=1,  # i.e. patients are integers
         updatemode="drag",
         tooltip={"placement": "top", "always_visible": True},
     )
     return slider
 
 
-
 def slider(id: str, value=0, min=0, max=5):
-    marks = {str(i): str(i) for i in range(min, max+1)}
+    marks = {str(i): str(i) for i in range(min, max + 1)}
     slider = dcc.Slider(
         id=id,
         min=min,
@@ -143,9 +217,11 @@ def slider(id: str, value=0, min=0, max=5):
         updatemode="drag",
         tooltip={"placement": "top", "always_visible": True},
     )
-    res = html.Div([slider],
-                   # now pad below by x% of the viewport height
-                   style={'margin-bottom': '2vh'})
+    res = html.Div(
+        [slider],
+        # now pad below by x% of the viewport height
+        style={"margin-bottom": "2vh"},
+    )
     return res
 
 
@@ -159,15 +235,18 @@ def slider(id: str, value=0, min=0, max=5):
         Input("plus_transfers", "value"),
     ],
 )
-def store_plus_total(ed, pacu_el, pacu_em, perrt, tx_in, ):
-    total = (ed + pacu_el + pacu_em + perrt + tx_in)
-    return (total, )
+def store_plus_total(
+    ed,
+    pacu_el,
+    pacu_em,
+    perrt,
+    tx_in,
+):
+    total = ed + pacu_el + pacu_em + perrt + tx_in
+    return (total,)
 
 
-@app.callback(
-    [Output("plus_total_display", "children")],
-    [Input("plus_total", "data")]
-)
+@app.callback([Output("plus_total_display", "children")], [Input("plus_total", "data")])
 def display_plus_total(plus_total):
     total = str(plus_total)
     return [html.Div(f"{total} admissions today")]
@@ -176,20 +255,31 @@ def display_plus_total(plus_total):
 @app.callback(
     [Output("minus_total", "data")],
     [
-        Input("minus_step_down", "value"),
+        # Input("minus_step_down", "value"),
+        Input("abacus-data-stepdowns", "data"),
         Input("minus_discharges", "value"),
         Input("minus_transfers", "value"),
         Input("minus_eol", "value"),
-    ]
+    ],
 )
-def store_minus_total(step_down, discharges, tx_out, eol, ):
-    total = step_down + discharges + tx_out + eol
-    return (total, )
+def store_minus_total(
+    step_downs_json,
+    discharges,
+    tx_out,
+    eol,
+):
+    # import pdb; pdb.set_trace()
+    # df_stepdowns = pd.DataFrame.from_records(step_downs_json)
+    if step_downs_json is None:
+        step_downs_n = 0
+    else:
+        step_downs_n = len(step_downs_json)
+    total = step_downs_n + discharges + tx_out + eol
+    return (total,)
 
 
 @app.callback(
-    [Output("minus_total_display", "children")],
-    [Input("minus_total", "data")]
+    [Output("minus_total_display", "children")], [Input("minus_total", "data")]
 )
 def display_minus_total(minus_total):
     total = str(minus_total)
@@ -200,7 +290,7 @@ def display_minus_total(minus_total):
     [Output("census_now_display", "children")],
     [
         Input("abacus-census-slider", "value"),
-    ]
+    ],
 )
 def display_census_now(census_now):
     total = str(census_now)
@@ -213,7 +303,7 @@ def display_census_now(census_now):
         Input("abacus-census-slider", "value"),
         Input("plus_total", "data"),
         Input("minus_total", "data"),
-    ]
+    ],
 )
 def display_census_next(census_now, plus_total, minus_total):
     census_now = int(census_now)
