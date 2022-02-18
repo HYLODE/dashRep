@@ -7,11 +7,58 @@ from dash import dcc, html
 # use the function from sitrep to pull and clean data
 from sitrep.callbacks import request_data
 
+# from ed.ed import get_dataframe, filter_same, prepare_ridge_densities
+from ed import ed
+from ridgeplot import ridgeplot
+
 from app import app
 from utils import utils
 
 conf = ConfigFactory.factory()
 
+
+# ****************************************************************************
+# *                        emergency department demand                       *
+# ****************************************************************************
+
+
+@app.callback(
+    Output("abacus-ed-demand", "children"),
+    Input("abacus-interval-data", "n_intervals"),
+)
+def ed_demand_plot(json_data):
+    # import pdb; pdb.set_trace()
+    df = ed.get_dataframe(
+        sql_script=ed.AGG_SQL_FILE,
+        csv_file=ed.AGG_CSV_FILE,
+        dev=conf.DEV,
+        parse_dates=ed.AGG_PARSE_DATES,
+    )
+    df = ed.wrangle_ed_agg(df)
+    df = ed.filter_same(df)
+    labels, densities = ed.prepare_ridge_densities(df)
+    fig = ridgeplot(
+        densities=densities,
+        labels=labels,
+        colorscale="portland",
+        colormode="mean-minmax",
+        spacing=1 / 10,
+    )
+    fig.update_layout(showlegend=False)
+    fig.update_layout(
+        xaxis_title="Inpatient bed demand",
+        # yaxis_title=f"Predictions from days past<br>(i.e. up to {max(labels)} days ago)",
+        yaxis_title=f"Recent predictions)",
+    )
+    fig.update_layout(template="plotly_white")
+    # fig.update_layout( width=400, height=300)
+    config = {"displayModeBar":False, "staticPlot":True, "autosizable":True, }
+    return dcc.Graph(figure=fig,config=config)
+
+
+# ****************************************************************************
+# *                                 stepdowns                                *
+# ****************************************************************************
 
 @app.callback(
     Output("abacus-data-stepdowns", "data"),
@@ -87,6 +134,10 @@ def gen_datatable_stepdowns(stepdowns_json):
         )
     ]
     return dto
+
+# ****************************************************************************
+# *                          load main census table                          *
+# ****************************************************************************
 
 
 @app.callback(
@@ -186,6 +237,11 @@ def gen_datatable_main(json_data):
     return dto
 
 
+# ****************************************************************************
+# *                                  sliders                                 *
+# ****************************************************************************
+
+
 def slider_census():
     ward = "T03".lower()
     df = request_data(ward)
@@ -224,6 +280,9 @@ def slider(id: str, value=0, min=0, max=5):
     )
     return res
 
+# ****************************************************************************
+# *                              running totals                              *
+# ****************************************************************************
 
 @app.callback(
     [Output("plus_total", "data")],

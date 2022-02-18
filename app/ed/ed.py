@@ -178,7 +178,7 @@ def prepare_ridge_densities(df, xmax=40):
 
 
 @app.callback(
-    output=dict(json_data=Output("agg-predictions", "data")),  # output data to store
+    output=dict(json_data=Output("ed-agg-predictions", "data")),  # output data to store
     inputs=dict(
         intervals=Input("ed-interval-data", "n_intervals"),
     ),
@@ -198,7 +198,7 @@ def get_agg(intervals):
 
 @app.callback(
     Output("ridgeplot", "children"),
-    Input("agg-predictions", "data"),
+    Input("ed-agg-predictions", "data"),
 )
 def gen_ridgeplot(json_data):
     # TODO: tidy this as calling global variables
@@ -292,7 +292,7 @@ dash_only = html.Div(
         # use this to source-data when the data changes
         dcc.Store(id="csn-patients"),
         # dcc.Store(id="tbl-active-row"),
-        dcc.Store(id="agg-predictions"),
+        dcc.Store(id="ed-agg-predictions"),
     ]
 )
 

@@ -12,27 +12,30 @@ from config.config import ConfigFactory, footer, header, nav
 conf = ConfigFactory.factory()
 
 
-# ============
-# Patients IN
-# ============
+# ****************************************************************************
+# *                             Bed demand INPUTS                            *
+# ****************************************************************************
 
 
 card_ed = dbc.Card(
     [
-        dbc.CardHeader("Emergency Department"),
+        dbc.Button("Emergency Department", className="d-grid", href="/ed", color="info"),
         dbc.CardBody(
             [
-                html.P("Predicted admissions", className="card-text"),
+                # html.P("Predicted admissions", className="card-text"),
                 callbacks.slider("plus_ed"),
+                html.Div(id="abacus-ed-demand"),
 
             ]
         ),
     ],
+    color="info", # use colors to dynamically warn of pressure/demand
+    outline=True,
 )
 
 card_pacu_el = dbc.Card(
     [
-        dbc.CardHeader("Surgery - Elective"),
+        dbc.Button("Surgery - Elective", className="d-grid", href="/pacu-el", disabled=True, color="warning"),
         dbc.CardBody(
             [
                 html.P("Predicted admissions", className="card-text"),
@@ -41,11 +44,14 @@ card_pacu_el = dbc.Card(
             ]
         ),
     ],
+    color="warning", # use colors to dynamically warn of pressure/demand
+    outline=True,
 )
 
 card_pacu_em = dbc.Card(
     [
-        dbc.CardHeader("Surgery - Emergency"),
+        # dbc.CardHeader("Surgery - Emergency"),
+        dbc.Button("Surgery - Emergency", className="d-grid", href="/pacu-el", disabled=True),
         dbc.CardBody(
             [
                 html.P("Predicted admissions", className="card-text"),
@@ -54,11 +60,13 @@ card_pacu_em = dbc.Card(
             ]
         ),
     ],
+    color="light", # use colors to dynamically warn of pressure/demand
+    outline=True,
 )
 
 card_perrt = dbc.Card(
     [
-        dbc.CardHeader("PERRT"),
+        dbc.Button("PERRT", className="d-grid", href="/perrt", disabled=True),
         dbc.CardBody(
             [
                 html.P("Predicted admissions", className="card-text"),
@@ -67,12 +75,15 @@ card_perrt = dbc.Card(
             ]
         ),
     ],
+    # color="light", # use colors to dynamically warn of pressure/demand
+    outline=True,
 )
 
 
 card_transfer_in = dbc.Card(
     [
-        dbc.CardHeader("External Transfers"),
+        # dbc.CardHeader(dbc.CardLink("External Transfers", href="/covid")),
+        dbc.Button("External Transfers", className="d-grid", href="/covid", disabled=False),
         dbc.CardBody(
             [
                 html.P("Predicted admissions", className="card-text"),
@@ -81,6 +92,8 @@ card_transfer_in = dbc.Card(
             ]
         ),
     ],
+    # color="light", # use colors to dynamically warn of pressure/demand
+    outline=True,
 )
 
 # ================
