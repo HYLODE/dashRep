@@ -3,16 +3,23 @@
 # Then work out how to share data with other parts of the app separately
 # Requirements
 # DONE: Display an expandable datatable in card
+# DONE: Add linked dynamic slider
 # TODO: Store updates to that table away from the page
-# TODO: Add linked dynamic slider
+#       work with dt properties to first define if the data has changed 
+#       data_previous as input trigger to know if the data has changed
 
 import dash
 import dash_bootstrap_components as dbc
 import pandas as pd
+
 from config.config import ConfigFactory
-from dash import Dash, Input, Output, State
+from dash import Dash
+from dash import Input
+from dash import Output
+from dash import State
 from dash import dash_table as dt
-from dash import dcc, html
+from dash import dcc
+from dash import html
 
 conf = ConfigFactory.factory()
 
@@ -77,6 +84,10 @@ def make_dt(data_json):
         data=df.to_dict("records"),
         editable=True,
         row_deletable=True,
+        # 2022-02-19 persistence args don't seem to affect forced refresh
+        # persistence=True,
+        # persisted_props=['data'],
+        # persistence_type='session',
         )
     return dtable
 
