@@ -35,36 +35,43 @@ def make_fake_df(n_rows):
         provider_name="local_hospital",
         elements=['Royal Free', 'Whittington', 'North Middlesex', 'Barnet']
     )
+    infection_status_provider = DynamicProvider(
+        provider_name="infection_status",
+        elements=['clean', 'COVID', 'ESBL', '']
+    )
     fake = Faker('en_GB')
     fake.add_provider(local_hospitals_provider)
+    fake.add_provider(infection_status_provider)
     referrals = []
     for _ in range(n_rows):
         referrals.append(dict(
-            name = fake.name(),
-            hospital = fake.local_hospital()
+            hospital = fake.local_hospital(),
+            accepted = fake.random_element(elements=('yes', 'no')),
+            note = f"{fake.name()} / {fake.infection_status()}",
         ))
 
     df = pd.DataFrame(referrals)
     return df
 
 
-# @app.callback(
-#     Output("dt_data", "data"),
-#     Input("update_trigger", "n_intervals"),
-#     )
-# def load_data(n_intervals):
-#     df = make_fake_df(2)
-#     return df.to_dict("records")
+@app.callback(
+    Output("dt_data", "data"),
+    Input("update_trigger", "n_intervals"),
+    )
+def load_data(n_intervals):
+    df = make_fake_df(2)
+    return df.to_dict("records")
 
 
 @app.callback(
-    Output("dt_table", "children"),
+    Output("div_table", "children"),
     Input("dt_data", "data"),
     )
 def make_dt(data_json):
     df = pd.DataFrame.from_records(data_json)
 
     dtable = dt.DataTable(
+        id="dt_table",
         columns = [{"name": i, "id": i} for i in df.columns],
         data=df.to_dict("records"),
         editable=True,
@@ -74,25 +81,20 @@ def make_dt(data_json):
 
 
 @app.callback(
-    Output('dt_data', 'data'),
-    Input("update_trigger", "n_intervals"),
+    Output('dt_table', 'data'),
     Input('editing-rows-button', 'n_clicks'),
-    State('dt_data', 'data'),
-    # State('dt_data', 'columns'),
+    State('dt_table', 'data'),
+    State('dt_table', 'columns'),
 )
-def add_row(n_intervals, n_clicks, rows):
-    if n_clicks == 0:
-        df = make_fake_df(2)
-        return df.to_dict("records")
-    if n_clicks > 0:
-        rows.append({k: '' for k in rows[0].keys()})
-        return rows
+def add_row(n_clicks, rows, columns):
+    rows.append({c['id']: '' for c in columns})
+    return rows
 
 
 app.layout = dbc.Container([
     dbc.Card([
         # html.P('Hello world')
-        html.Div(id='dt_table'),
+        html.Div(id='div_table'),
         html.Button('Add Row', id='editing-rows-button', n_clicks=0),
         ]),
 
