@@ -1,9 +1,12 @@
 # Simple single card version of the transfers in module
 # Write as standalone here
-# 
+# Then work out how to share data with other parts of the app separately
 # Requirements
-# TODO: simple datatable of the basic census info
-# TODO: loop through table and construct string for markdown
+# DONE: Display an expandable datatable in card
+# DONE: Add linked dynamic slider
+# TODO: Store updates to that table away from the page
+#       work with dt properties to first define if the data has changed 
+#       data_previous as input trigger to know if the data has changed
 
 import dash
 import dash_bootstrap_components as dbc
@@ -32,63 +35,27 @@ app = dash.Dash(
     suppress_callback_exceptions=True,
 )
 
-
-# {
-#     "name": "Joseph Valdez",
-#     "admission_age_years": 110,
-#     "sex": "M",
-
-#     "n_inotropes_1_4h": 0,
-#     "had_rrt_1_4h": false,
-#     "vent_type_1_4h": "Unknown",
-
-#     "episode_slice_id": 162117,
-#     "csn": "1048246392",
-#     "admission_dt": "2021-10-07T19:30:00+01:00",
-#     "elapsed_los_td": 973800,
-#     "bed_code": "BY01-12",
-#     "bay_code": "BY01",
-#     "bay_type": "Regular",
-#     "ward_code": "T03",
-#     "mrn": "42636453",
-#     "dob": "1911-07-23",
-#     "admission_age_years": 110,
-#     "sex": "M",
-#     "is_proned_1_4h": false,
-#     "discharge_ready_1_4h": "No",
-#     "is_agitated_1_8h": false,
-#     "had_nitric_1_8h": false,
-#     "had_trache_1_12h": false,
-#     "avg_heart_rate_1_24h": null,
-#     "max_temp_1_12h": null,
-#     "avg_resp_rate_1_24h": null,
-#     "wim_1": 0
-# },
-
 def make_fake_df(n_rows):
     # run the imports here since this function won't be needed in production
     from faker import Faker
     from faker.providers import DynamicProvider
-
+    local_hospitals_provider = DynamicProvider(
+        provider_name="local_hospital",
+        elements=['Royal Free', 'Whittington', 'North Middlesex', 'Barnet']
+    )
     infection_status_provider = DynamicProvider(
         provider_name="infection_status",
         elements=['clean', 'COVID', 'ESBL', '']
     )
-
     fake = Faker('en_GB')
+    fake.add_provider(local_hospitals_provider)
     fake.add_provider(infection_status_provider)
     referrals = []
     for _ in range(n_rows):
         referrals.append(dict(
-            name = fake.name(),
-            admission_age_years = fake.random_int(18,99),
-            sex = fake.random_element(elements=('M', 'F')),
-
-            n_inotropes_1_4h = fake.random_int(0,3),
-            had_rrt_1_4h = fake.random_element(elements=('false', 'true')),
-            vent_type_1_4h = fake.random_element(elements=('Unknown', 'Room air', 'Oxygen', 'HFNO', 'Ventilated', 'CPAP')),
-
-            note = fake.infection_status(),
+            hospital = fake.local_hospital(),
+            accepted = fake.random_element(elements=('Yes', 'No')),
+            note = f"{fake.name()} / {fake.infection_status()}",
         ))
 
     df = pd.DataFrame(referrals)
@@ -143,7 +110,7 @@ def add_row(n_clicks, rows, columns):
 def make_slider(data_json):
     df = pd.DataFrame.from_records(data_json)
     _max = df.shape[0]
-    value = _max
+    value = sum(df['accepted'].str[0].str.lower() == 'y')
 
     marks = {str(i): str(i) for i in range(0, _max + 1)}
     slider = dcc.Slider(
