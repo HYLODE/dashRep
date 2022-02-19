@@ -2,8 +2,9 @@
 # Write as standalone here
 # Then work out how to share data with other parts of the app separately
 # Requirements
-# Display an expandable datatable in card
-# Store updates to that table 
+# DONE: Display an expandable datatable in card
+# TODO: Store updates to that table away from the page
+# TODO: Add linked dynamic slider
 
 import dash
 import dash_bootstrap_components as dbc
@@ -46,7 +47,7 @@ def make_fake_df(n_rows):
     for _ in range(n_rows):
         referrals.append(dict(
             hospital = fake.local_hospital(),
-            accepted = fake.random_element(elements=('yes', 'no')),
+            accepted = fake.random_element(elements=('Yes', 'No')),
             note = f"{fake.name()} / {fake.infection_status()}",
         ))
 
@@ -55,7 +56,7 @@ def make_fake_df(n_rows):
 
 
 @app.callback(
-    Output("dt_data", "data"),
+    Output("store_dt_external", "data"),
     Input("update_trigger", "n_intervals"),
     )
 def load_data(n_intervals):
@@ -65,7 +66,7 @@ def load_data(n_intervals):
 
 @app.callback(
     Output("div_table", "children"),
-    Input("dt_data", "data"),
+    Input("store_dt_external", "data"),
     )
 def make_dt(data_json):
     df = pd.DataFrame.from_records(data_json)
@@ -91,16 +92,41 @@ def add_row(n_clicks, rows, columns):
     return rows
 
 
+@app.callback(
+    Output("div_slider", "children"),
+    Input("dt_table", "data"),
+)
+def make_slider(data_json):
+    df = pd.DataFrame.from_records(data_json)
+    _max = df.shape[0]
+    value = sum(df['accepted'].str[0].str.lower() == 'y')
+
+    marks = {str(i): str(i) for i in range(0, _max + 1)}
+    slider = dcc.Slider(
+        id="dt_slider",
+        min=0,
+        max=_max,
+        value=value,
+        marks=marks,
+        step=1,  # i.e. patients are integers
+        updatemode="drag",
+        tooltip={"placement": "top", "always_visible": True},
+    )
+
+    return slider
+
+
 app.layout = dbc.Container([
     dbc.Card([
-        # html.P('Hello world')
+        html.P('External referrals', className="card-title"),
+        html.Div(id='div_slider'),
         html.Div(id='div_table'),
-        html.Button('Add Row', id='editing-rows-button', n_clicks=0),
+        dbc.Button('Add Row', id='editing-rows-button', n_clicks=0),
         ]),
 
     html.Div([
         dcc.Interval(id="update_trigger", interval=conf.REFRESH_INTERVAL, n_intervals=0),
-        dcc.Store(id='dt_data', storage_type='session'),
+        dcc.Store(id='store_dt_external', storage_type='session'),
         ]),
 
 ])
