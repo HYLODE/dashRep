@@ -5,17 +5,14 @@
 # Display an expandable datatable in card
 # Store updates to that table 
 
-import pandas as pd
-
 import dash
-from dash import dcc, html
+import dash_bootstrap_components as dbc
+import pandas as pd
+from config.config import ConfigFactory
 from dash import Dash, Input, Output, State
 from dash import dash_table as dt
+from dash import dcc, html
 
-import dash_bootstrap_components as dbc
-
-
-from config.config import ConfigFactory
 conf = ConfigFactory.factory()
 
 
@@ -51,13 +48,13 @@ def make_fake_df(n_rows):
     return df
 
 
-@app.callback(
-    Output("dt_data", "data"),
-    Input("update_trigger", "n_intervals"),
-    )
-def load_data(n_intervals):
-    df = make_fake_df(2)
-    return df.to_dict("records")
+# @app.callback(
+#     Output("dt_data", "data"),
+#     Input("update_trigger", "n_intervals"),
+#     )
+# def load_data(n_intervals):
+#     df = make_fake_df(2)
+#     return df.to_dict("records")
 
 
 @app.callback(
@@ -70,14 +67,33 @@ def make_dt(data_json):
     dtable = dt.DataTable(
         columns = [{"name": i, "id": i} for i in df.columns],
         data=df.to_dict("records"),
+        editable=True,
+        row_deletable=True,
         )
     return dtable
+
+
+@app.callback(
+    Output('dt_data', 'data'),
+    Input("update_trigger", "n_intervals"),
+    Input('editing-rows-button', 'n_clicks'),
+    State('dt_data', 'data'),
+    # State('dt_data', 'columns'),
+)
+def add_row(n_intervals, n_clicks, rows):
+    if n_clicks == 0:
+        df = make_fake_df(2)
+        return df.to_dict("records")
+    if n_clicks > 0:
+        rows.append({k: '' for k in rows[0].keys()})
+        return rows
 
 
 app.layout = dbc.Container([
     dbc.Card([
         # html.P('Hello world')
         html.Div(id='dt_table'),
+        html.Button('Add Row', id='editing-rows-button', n_clicks=0),
         ]),
 
     html.Div([
