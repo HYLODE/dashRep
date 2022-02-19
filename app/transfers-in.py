@@ -6,8 +6,12 @@
 # Store updates to that table 
 
 import pandas as pd
+
 import dash
 from dash import dcc, html
+from dash import Dash, Input, Output, State
+from dash import dash_table as dt
+
 import dash_bootstrap_components as dbc
 
 
@@ -47,14 +51,41 @@ def make_fake_df(n_rows):
     return df
 
 
-print(make_fake_df(2))
+@app.callback(
+    Output("dt_data", "data"),
+    Input("update_trigger", "n_intervals"),
+    )
+def load_data(n_intervals):
+    df = make_fake_df(2)
+    return df.to_dict("records")
 
 
+@app.callback(
+    Output("dt_table", "children"),
+    Input("dt_data", "data"),
+    )
+def make_dt(data_json):
+    df = pd.DataFrame.from_records(data_json)
+
+    dtable = dt.DataTable(
+        columns = [{"name": i, "id": i} for i in df.columns],
+        data=df.to_dict("records"),
+        )
+    return dtable
 
 
+app.layout = dbc.Container([
+    dbc.Card([
+        # html.P('Hello world')
+        html.Div(id='dt_table'),
+        ]),
 
+    html.Div([
+        dcc.Interval(id="update_trigger", interval=conf.REFRESH_INTERVAL, n_intervals=0),
+        dcc.Store(id='dt_data', storage_type='session'),
+        ]),
 
-app.layout = html.Div("hello world" )
+])
 
 if __name__ == '__main__':
     app.run_server(port=8010, host='0.0.0.0', debug=True)
