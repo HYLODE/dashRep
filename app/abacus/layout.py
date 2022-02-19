@@ -2,6 +2,7 @@
 Abacus demo
 TODO: demonstrate DEMAND by working with open beds so allow the total to exceed the available
 """
+from abacus.transfers_in import transfers_in_card
 from . import callbacks
 from app import app
 from dash import dcc, html
@@ -19,7 +20,8 @@ conf = ConfigFactory.factory()
 
 card_ed = dbc.Card(
     [
-        dbc.Button("Emergency Department", className="d-grid", href="/ed", color="info"),
+        dbc.Button("Emergency Department", className="d-grid",
+                   href="/ed", color="info"),
         dbc.CardBody(
             [
                 # html.P("Predicted admissions", className="card-text"),
@@ -29,13 +31,14 @@ card_ed = dbc.Card(
             ]
         ),
     ],
-    color="info", # use colors to dynamically warn of pressure/demand
+    color="info",  # use colors to dynamically warn of pressure/demand
     outline=True,
 )
 
 card_pacu_el = dbc.Card(
     [
-        dbc.Button("Surgery - Elective", className="d-grid", href="/pacu-el", disabled=True, color="warning"),
+        dbc.Button("Surgery - Elective", className="d-grid",
+                   href="/pacu-el", disabled=True, color="warning"),
         dbc.CardBody(
             [
                 html.P("Predicted admissions", className="card-text"),
@@ -44,14 +47,15 @@ card_pacu_el = dbc.Card(
             ]
         ),
     ],
-    color="warning", # use colors to dynamically warn of pressure/demand
+    color="warning",  # use colors to dynamically warn of pressure/demand
     outline=True,
 )
 
 card_pacu_em = dbc.Card(
     [
         # dbc.CardHeader("Surgery - Emergency"),
-        dbc.Button("Surgery - Emergency", className="d-grid", href="/pacu-el", disabled=True),
+        dbc.Button("Surgery - Emergency", className="d-grid",
+                   href="/pacu-el", disabled=True),
         dbc.CardBody(
             [
                 html.P("Predicted admissions", className="card-text"),
@@ -60,7 +64,7 @@ card_pacu_em = dbc.Card(
             ]
         ),
     ],
-    color="light", # use colors to dynamically warn of pressure/demand
+    color="light",  # use colors to dynamically warn of pressure/demand
     outline=True,
 )
 
@@ -83,14 +87,16 @@ card_perrt = dbc.Card(
 card_transfer_in = dbc.Card(
     [
         # dbc.CardHeader(dbc.CardLink("External Transfers", href="/covid")),
-        dbc.Button("External Transfers", className="d-grid", href="/covid", disabled=False),
-        dbc.CardBody(
-            [
-                html.P("Predicted admissions", className="card-text"),
-                callbacks.slider("plus_transfers"),
+        dbc.Button("External Transfers", className="d-grid",
+                   href="/covid", disabled=False),
+        transfers_in_card,
+        # dbc.CardBody(
+        #     [
+        #         # html.P("Predicted admissions", className="card-text"),
+        #         # callbacks.slider("plus_transfers"),
 
-            ]
-        ),
+        #     ]
+        # ),
     ],
     # color="light", # use colors to dynamically warn of pressure/demand
     outline=True,
@@ -182,9 +188,9 @@ card_eol = dbc.Card(
 main = html.Div([
 
 
-# ****************************************************************************
-# *                      Row 1: Current census                               *
-# ****************************************************************************
+    # ****************************************************************************
+    # *                      Row 1: Current census                               *
+    # ****************************************************************************
     dbc.Row([
             dbc.Col(
                 [
@@ -207,18 +213,18 @@ main = html.Div([
             ],
             ),
 
-# ****************************************************************************
-# *                      Row 2: Predicted census in 24hr                     *
-# ****************************************************************************
+    # ****************************************************************************
+    # *                      Row 2: Predicted census in 24hr                     *
+    # ****************************************************************************
 
     dbc.Row(dbc.Col([
         # html.Div("Ward bed management"),
         html.Div(id="census_next_display"),
     ], md={'offset': 3, 'size': 6})),
 
-# ****************************************************************************
-# *                      Row 3: Detail cards                                 *
-# ****************************************************************************
+    # ****************************************************************************
+    # *                      Row 3: Detail cards                                 *
+    # ****************************************************************************
 
     dbc.Row([
             dbc.Col(

@@ -47,14 +47,14 @@ def ed_demand_plot(json_data, ed_slider):
             y=dfi['probs'],
             mode="lines",
             marker_color=colour,
-            ))
+        ))
 
     fig.add_shape(type='line',
-            x0=ed_slider, y0=0,
-            x1=ed_slider, y1=df['probs'].max(),
-            line=dict(color="blue")
-            )
-    fig.update_xaxes(range=[0,4])
+                  x0=ed_slider, y0=0,
+                  x1=ed_slider, y1=df['probs'].max(),
+                  line=dict(color="blue")
+                  )
+    fig.update_xaxes(range=[0, 4])
     fig.update_layout(showlegend=False)
     fig.update_layout(xaxis_title="Predicted ICU bed demand", yaxis_title="")
     fig.update_layout(template="plotly_white")
@@ -103,7 +103,8 @@ def read_discharges(census_json) -> dict:
 def gen_datatable_stepdowns(stepdowns_json):
     # df = pd.DataFrame.from_records(stepdowns_json)
     _cols = ["bed", "name"]
-    COL_DICT = [{"name": v, "id": k} for k, v in conf.COLS.items() if k in _cols]
+    COL_DICT = [{"name": v, "id": k}
+                for k, v in conf.COLS.items() if k in _cols]
 
     dto = (
         dt.DataTable(
@@ -308,6 +309,7 @@ def slider(id: str, value=0, min=0, max=5):
         Input("plus_perrt", "value"),
         Input("plus_transfers", "value"),
     ],
+    prevent_initial_call=True,  # suppress_callback_exceptions does not work
 )
 def store_plus_total(
     ed,
@@ -320,7 +322,11 @@ def store_plus_total(
     return (total,)
 
 
-@app.callback([Output("plus_total_display", "children")], [Input("plus_total", "data")])
+@app.callback(
+    [Output("plus_total_display", "children")],
+    # suppress_callback_exceptions does not work
+    [Input("plus_total", "data")],     prevent_initial_call=True,
+)
 def display_plus_total(plus_total):
     total = str(plus_total)
     msg = f"{total} Admissions budgeted today"
@@ -328,7 +334,7 @@ def display_plus_total(plus_total):
         [
             dbc.CardHeader(msg, className="card-title")
         ],
-        color="dark", 
+        color="dark",
         inverse=True,
         style={"margin-top": "1vh"},
     )
@@ -376,7 +382,7 @@ def display_minus_total(minus_total):
         [
             dbc.CardHeader(msg, className="card-title")
         ],
-        color="dark", 
+        color="dark",
         inverse=True,
         style={"margin-top": "1vh"},
     )
@@ -401,7 +407,7 @@ def display_census_now(census_now):
         [
             dbc.CardHeader(msg, className="card-title")
         ],
-        color="dark", 
+        color="dark",
         inverse=True,
         style={"margin-top": "1vh"},
     )
@@ -415,9 +421,24 @@ def display_census_now(census_now):
         Input("plus_total", "data"),
         Input("minus_total", "data"),
     ],
+    prevent_initial_call=True,  # suppress_callback_exceptions does not work
 )
 def display_census_next(census_now, plus_total, minus_total):
     census_now = int(census_now)
-    total = str(census_now + plus_total - minus_total)
-    # TODO: colour the alert wrt to the maximum available beds
-    return [dbc.Alert(f"{total} calculated census tomorrow", color="danger")]
+    # var or 0 handles events that returns None
+    total = str(
+        ((census_now or 0)
+            + (plus_total or 0)
+            - (minus_total or 0)))
+
+    msg = f"{total} calcualted census in 24h"
+
+    card = dbc.Card(
+        [
+            dbc.CardHeader(msg, className="card-title")
+        ],
+        color="danger",
+        inverse=True,
+        style={"margin-top": "1vh"},
+    )
+    return (card, )
