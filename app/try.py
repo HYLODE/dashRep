@@ -124,6 +124,30 @@ def make_dt(data_json):
         )
     return dtable
 
+@app.callback(
+    Output("div_table_icons", "children"),
+    Input("store_dt_external", "data"),
+    )
+def make_dt(data_json):
+    dfo = pd.DataFrame.from_records(data_json)
+    dfo['icons'] = ''
+
+    dfn = []
+    for t in dfo.itertuples(index=False):
+        print(t)
+        # do something with named tuple
+        dfn.append(t)
+    dfn = pd.DataFrame(dfn, columns=dfo.columns)
+    print(dfn)
+
+    dtable = dt.DataTable(
+        id="dt_table",
+        columns = [{"name": i, "id": i} for i in dfn.columns],
+        data=dfn.to_dict("records"),
+        editable=True,
+        row_deletable=True,
+        )
+    return dtable
 
 @app.callback(
     Output('dt_table', 'data'),
@@ -164,7 +188,10 @@ app.layout = dbc.Container([
     dbc.Card([
         html.P('External referrals', className="card-title"),
         html.Div(id='div_slider'),
+        html.P('Original table', className="card-body"),
         html.Div(id='div_table'),
+        html.P('Icon table', className="card-body"),
+        html.Div(id='div_table_icons'),
         dbc.Button('Add Row', id='editing-rows-button', n_clicks=0),
         ]),
 
