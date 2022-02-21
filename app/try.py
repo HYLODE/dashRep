@@ -21,8 +21,11 @@ from dash import html
 from utils import utils
 
 conf = ConfigFactory.factory()
-ICON_RAIN = '<i class="fa fa-cloud-rain"></i>'
 
+COLOUR_GREY = "#c0c0c077"
+COLOUR_GREEN = "#008000ff"
+COLOUR_AMBER = "#ffa500ff"
+COLOUR_RED = "#ff0000ff"
 
 app = dash.Dash(
     __name__,
@@ -36,9 +39,44 @@ app = dash.Dash(
 )
 
 
-def gen_cvs_icon(n, icon):
-    # TODO: use n to colour the icon
-    return icon
+
+def gen_aki_icon(level: str) -> str:
+    icon = 'fa fa-flask'
+    level = level.lower()
+    if level == 'false':
+        colour = COLOUR_GREY
+    elif level == 'true':
+        colour = COLOUR_RED
+    else:
+        colour = COLOUR_GREY
+    icon_string = f'<i class="{icon}" style="color: {colour};"></i>'
+    return icon_string
+
+def gen_rs_icon(level: str) -> str:
+    icon = 'fa fa-lungs'
+    level = level.lower()
+    if level in ['unknown', 'room air']:
+        colour = COLOUR_GREY
+    elif level in ['oxygen']:
+        colour = COLOUR_GREEN
+    elif level in ['hfno', 'niv', 'cpap']:
+        colour = COLOUR_AMBER
+    else:
+        colour = COLOUR_RED
+    icon_string = f'<i class="{icon}" style="color: {colour};"></i>'
+    return icon_string
+
+def gen_cvs_icon(level: str) -> str:
+    icon = 'fa fa-heart'
+    n = int(level)
+    if n == 0:
+        colour = COLOUR_GREY
+    elif n == 1:
+        colour = COLOUR_AMBER
+    else:
+        colour = COLOUR_RED
+    icon_string = f'<i class="{icon}" style="color: {colour};"></i>'
+    return icon_string
 
 
 # {
@@ -144,15 +182,16 @@ def make_dt_icons(data_json):
 
     llist = []
     for t in dfo.itertuples(index=False):
-        print(t)
-        # do something with named tuple
 
-        cvs = gen_cvs_icon(t.n_inotropes_1_4h, ICON_RAIN)
+        cvs = gen_cvs_icon(t.n_inotropes_1_4h)
+        rs = gen_rs_icon(t.vent_type_1_4h)
         # import pdb; pdb.set_trace()
+        aki = gen_aki_icon(t.had_rrt_1_4h)
+        print(aki)
 
-        icon_string = f"{cvs}"
+        icon_string = f"{rs}{cvs}{aki}"
+        print(icon_string)
         ti = t._replace(icons=icon_string)
-        print(ti)
         llist.append(ti)
     dfn = pd.DataFrame(llist, columns=dfo.columns)
     print(dfn)
