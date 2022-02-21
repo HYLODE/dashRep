@@ -1,6 +1,6 @@
 # Simple single card version of the transfers in module
 # Write as standalone here
-# 
+#
 # Requirements
 # TODO: simple datatable of the basic census info
 # TODO: loop through table and construct string for markdown
@@ -18,7 +18,10 @@ from dash import dash_table as dt
 from dash import dcc
 from dash import html
 
+from utils import utils
+
 conf = ConfigFactory.factory()
+ICON_RAIN = '<i class="fa fa-cloud-rain"></i>'
 
 
 app = dash.Dash(
@@ -31,6 +34,11 @@ app = dash.Dash(
     ],
     suppress_callback_exceptions=True,
 )
+
+
+def gen_cvs_icon(n, icon):
+    # TODO: use n to colour the icon
+    return icon
 
 
 # {
@@ -80,15 +88,16 @@ def make_fake_df(n_rows):
     referrals = []
     for _ in range(n_rows):
         referrals.append(dict(
-            name = fake.name(),
-            admission_age_years = fake.random_int(18,99),
-            sex = fake.random_element(elements=('M', 'F')),
+            name=fake.name(),
+            admission_age_years=fake.random_int(18, 99),
+            sex=fake.random_element(elements=('M', 'F')),
 
-            n_inotropes_1_4h = fake.random_int(0,3),
-            had_rrt_1_4h = fake.random_element(elements=('false', 'true')),
-            vent_type_1_4h = fake.random_element(elements=('Unknown', 'Room air', 'Oxygen', 'HFNO', 'Ventilated', 'CPAP')),
+            n_inotropes_1_4h=fake.random_int(0, 3),
+            had_rrt_1_4h=fake.random_element(elements=('false', 'true')),
+            vent_type_1_4h=fake.random_element(
+                elements=('Unknown', 'Room air', 'Oxygen', 'HFNO', 'Ventilated', 'CPAP')),
 
-            note = fake.infection_status(),
+            note=fake.infection_status(),
         ))
 
     df = pd.DataFrame(referrals)
@@ -98,7 +107,7 @@ def make_fake_df(n_rows):
 @app.callback(
     Output("store_dt_external", "data"),
     Input("update_trigger", "n_intervals"),
-    )
+)
 def load_data(n_intervals):
     df = make_fake_df(2)
     return df.to_dict("records")
@@ -107,47 +116,62 @@ def load_data(n_intervals):
 @app.callback(
     Output("div_table", "children"),
     Input("store_dt_external", "data"),
-    )
+)
 def make_dt(data_json):
     df = pd.DataFrame.from_records(data_json)
 
     dtable = dt.DataTable(
         id="dt_table",
-        columns = [{"name": i, "id": i} for i in df.columns],
         data=df.to_dict("records"),
+        columns=[{"name": i, "id": i} for i in df.columns],
         editable=True,
         row_deletable=True,
         # 2022-02-19 persistence args don't seem to affect forced refresh
         # persistence=True,
         # persisted_props=['data'],
         # persistence_type='session',
-        )
+    )
     return dtable
+
 
 @app.callback(
     Output("div_table_icons", "children"),
     Input("store_dt_external", "data"),
-    )
-def make_dt(data_json):
+)
+def make_dt_icons(data_json):
     dfo = pd.DataFrame.from_records(data_json)
     dfo['icons'] = ''
 
-    dfn = []
+    llist = []
     for t in dfo.itertuples(index=False):
         print(t)
         # do something with named tuple
-        dfn.append(t)
-    dfn = pd.DataFrame(dfn, columns=dfo.columns)
+
+        cvs = gen_cvs_icon(t.n_inotropes_1_4h, ICON_RAIN)
+        # import pdb; pdb.set_trace()
+
+        icon_string = f"{cvs}"
+        ti = t._replace(icons=icon_string)
+        print(ti)
+        llist.append(ti)
+    dfn = pd.DataFrame(llist, columns=dfo.columns)
     print(dfn)
 
+    columns = [{"name": i, "id": i} for i in dfn.columns]
+    utils.deep_update(
+        utils.get_dict_from_list(columns, "id", "icons"),
+        dict(presentation="markdown"),
+    )
     dtable = dt.DataTable(
         id="dt_table",
-        columns = [{"name": i, "id": i} for i in dfn.columns],
         data=dfn.to_dict("records"),
+        columns=columns,
         editable=True,
         row_deletable=True,
-        )
+        markdown_options={"html": True},
+    )
     return dtable
+
 
 @app.callback(
     Output('dt_table', 'data'),
@@ -193,12 +217,13 @@ app.layout = dbc.Container([
         html.P('Icon table', className="card-body"),
         html.Div(id='div_table_icons'),
         dbc.Button('Add Row', id='editing-rows-button', n_clicks=0),
-        ]),
+    ]),
 
     html.Div([
-        dcc.Interval(id="update_trigger", interval=conf.REFRESH_INTERVAL, n_intervals=0),
+        dcc.Interval(id="update_trigger",
+                     interval=conf.REFRESH_INTERVAL, n_intervals=0),
         dcc.Store(id='store_dt_external', storage_type='session'),
-        ]),
+    ]),
 
 ])
 
