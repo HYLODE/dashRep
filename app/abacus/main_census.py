@@ -9,6 +9,8 @@ import dash
 import dash_bootstrap_components as dbc
 import pandas as pd
 
+from app import app
+
 from config.config import ConfigFactory
 from dash import Dash
 from dash import Input
@@ -18,6 +20,7 @@ from dash import dash_table as dt
 from dash import dcc
 from dash import html
 
+from sitrep.callbacks import request_data
 from utils import utils
 
 conf = ConfigFactory.factory()
@@ -27,22 +30,14 @@ COLOUR_GREEN = "#008000ff"
 COLOUR_AMBER = "#ffa500ff"
 COLOUR_RED = "#ff0000ff"
 
-app = dash.Dash(
-    __name__,
-    title="Testing",
-    update_title=None,
-    external_stylesheets=[
-        dbc.themes.YETI,
-        dbc.icons.FONT_AWESOME,
-    ],
-    suppress_callback_exceptions=True,
-)
-
-
 
 def gen_aki_icon(level: str) -> str:
     icon = 'fa fa-flask'
-    level = level.lower()
+    try:
+        level = level.lower()
+    except AttributeError:
+        level = 'unknown'
+
     if level == 'false':
         colour = COLOUR_GREY
     elif level == 'true':
@@ -52,9 +47,15 @@ def gen_aki_icon(level: str) -> str:
     icon_string = f'<i class="{icon}" style="color: {colour};"></i>'
     return icon_string
 
+
 def gen_rs_icon(level: str) -> str:
     icon = 'fa fa-lungs'
-    level = level.lower()
+
+    try:
+        level = level.lower()
+    except AttributeError:
+        level = 'unknown'
+
     if level in ['unknown', 'room air']:
         colour = COLOUR_GREY
     elif level in ['oxygen']:
@@ -66,9 +67,13 @@ def gen_rs_icon(level: str) -> str:
     icon_string = f'<i class="{icon}" style="color: {colour};"></i>'
     return icon_string
 
+
 def gen_cvs_icon(level: str) -> str:
     icon = 'fa fa-heart'
-    n = int(level)
+    try:
+        n = int(level)
+    except ValueError:
+        n = 0
     if n == 0:
         colour = COLOUR_GREY
     elif n == 1:
@@ -78,38 +83,6 @@ def gen_cvs_icon(level: str) -> str:
     icon_string = f'<i class="{icon}" style="color: {colour};"></i>'
     return icon_string
 
-
-# {
-#     "name": "Joseph Valdez",
-#     "admission_age_years": 110,
-#     "sex": "M",
-
-#     "n_inotropes_1_4h": 0,
-#     "had_rrt_1_4h": false,
-#     "vent_type_1_4h": "Unknown",
-
-#     "episode_slice_id": 162117,
-#     "csn": "1048246392",
-#     "admission_dt": "2021-10-07T19:30:00+01:00",
-#     "elapsed_los_td": 973800,
-#     "bed_code": "BY01-12",
-#     "bay_code": "BY01",
-#     "bay_type": "Regular",
-#     "ward_code": "T03",
-#     "mrn": "42636453",
-#     "dob": "1911-07-23",
-#     "admission_age_years": 110,
-#     "sex": "M",
-#     "is_proned_1_4h": false,
-#     "discharge_ready_1_4h": "No",
-#     "is_agitated_1_8h": false,
-#     "had_nitric_1_8h": false,
-#     "had_trache_1_12h": false,
-#     "avg_heart_rate_1_24h": null,
-#     "max_temp_1_12h": null,
-#     "avg_resp_rate_1_24h": null,
-#     "wim_1": 0
-# },
 
 def make_fake_df(n_rows):
     # run the imports here since this function won't be needed in production
@@ -143,44 +116,34 @@ def make_fake_df(n_rows):
 
 
 @app.callback(
-    Output("store_dt_external", "data"),
-    Input("update_trigger", "n_intervals"),
+    output=dict(json_data=Output("abacus-source-data", "data")),
+    inputs=dict(
+        intervals=Input("abacus-interval-data", "n_intervals"),
+    ),
+    # prevent_initial_call=True,  # suppress_callback_exceptions does not work
 )
-def load_data(n_intervals):
-    df = make_fake_df(2)
-    return df.to_dict("records")
+def data_io(intervals):
+    """
+    stores the data in a dcc.Store
+    runs on load and will be triggered each time the table is updated or the REFRESH_INTERVAL elapses
+    """
+    ward = "T03"  # placeholder hardcoded; need to move to selection
+    ward = ward.lower()
+    df = request_data(ward)
+    print(df.head())
+    return dict(json_data=df.to_dict("records"))
 
 
 @app.callback(
-    Output("div_table", "children"),
-    Input("store_dt_external", "data"),
-)
-def make_dt(data_json):
-    df = pd.DataFrame.from_records(data_json)
-
-    dtable = dt.DataTable(
-        id="dt_table",
-        data=df.to_dict("records"),
-        columns=[{"name": i, "id": i} for i in df.columns],
-        editable=True,
-        row_deletable=True,
-        # 2022-02-19 persistence args don't seem to affect forced refresh
-        # persistence=True,
-        # persisted_props=['data'],
-        # persistence_type='session',
-    )
-    return dtable
-
-
-@app.callback(
-    Output("div_table_icons", "children"),
-    Input("store_dt_external", "data"),
+    Output("abacus-datatable-main", "children"),
+    Input("abacus-source-data", "data"),
 )
 def gen_datatable_main(data_json):
     dfo = pd.DataFrame.from_records(data_json)
     dfo['organ_icons'] = ''
 
     llist = []
+    # import pdb; pdb.set_trace()
     for t in dfo.itertuples(index=False):
 
         cvs = gen_cvs_icon(t.n_inotropes_1_4h)
@@ -197,6 +160,7 @@ def gen_datatable_main(data_json):
     COL_DICT = [
         {"name": v, "id": k} for k, v in conf.COLS.items() if k in conf.COLS_ABACUS
     ]
+    # TODO: add in a method of sorting based on the order in config
 
     utils.deep_update(
         utils.get_dict_from_list(COL_DICT, "id", "organ_icons"),
@@ -210,16 +174,6 @@ def gen_datatable_main(data_json):
         utils.get_dict_from_list(COL_DICT, "id", "discharge_ready_1_4h"),
         dict(presentation="dropdown"),
     )
-
-    # dtable = dt.DataTable(
-    #     id="dt_table",
-    #     data=dfn.to_dict("records"),
-    #     columns=columns,
-    #     editable=True,
-    #     row_deletable=True,
-    #     markdown_options={"html": True},
-    # )
-    # return dtable
 
     DISCHARGE_OPTIONS = ["Ready", "No", "Review"]
 
@@ -273,30 +227,15 @@ def gen_datatable_main(data_json):
     return dto
 
 
-@app.callback(
-    Output('dt_table', 'data'),
-    Input('editing-rows-button', 'n_clicks'),
-    State('dt_table', 'data'),
-    State('dt_table', 'columns'),
-)
-def add_row(n_clicks, rows, columns):
-    rows.append({c['id']: '' for c in columns})
-    return rows
-
-
-@app.callback(
-    Output("div_slider", "children"),
-    Input("dt_table", "data"),
-)
-def make_slider(data_json):
-    df = pd.DataFrame.from_records(data_json)
-    _max = df.shape[0]
-    value = _max
-
-    marks = {str(i): str(i) for i in range(0, _max + 1)}
+def slider_census():
+    ward = "T03".lower()
+    df = request_data(ward)
+    value = df["mrn"].nunique()
+    _min, _max, _step = 0, 36, 5
+    marks = {str(i): str(i) for i in range(_min, _max + 1, _step)}
     slider = dcc.Slider(
-        id="dt_slider",
-        min=0,
+        id="abacus-census-slider",
+        min=_min,
         max=_max,
         value=value,
         marks=marks,
@@ -304,28 +243,20 @@ def make_slider(data_json):
         updatemode="drag",
         tooltip={"placement": "top", "always_visible": True},
     )
-
     return slider
 
 
-app.layout = dbc.Container([
+main_census_card = dbc.Container([
     dbc.Card([
-        html.P('External referrals', className="card-title"),
-        html.Div(id='div_slider'),
-        html.P('Original table', className="card-body"),
-        html.Div(id='div_table'),
-        html.P('Icon table', className="card-body"),
-        html.Div(id='div_table_icons'),
-        dbc.Button('Add Row', id='editing-rows-button', n_clicks=0),
+        slider_census(),
+        html.Div(id="abacus-datatable-main"),
+
     ]),
 
     html.Div([
-        dcc.Interval(id="update_trigger",
+        dcc.Interval(id="abacus-interval-data",
                      interval=conf.REFRESH_INTERVAL, n_intervals=0),
-        dcc.Store(id='store_dt_external', storage_type='session'),
+        dcc.Store(id="abacus-source-data"),
     ]),
 
 ])
-
-if __name__ == '__main__':
-    app.run_server(port=8010, host='0.0.0.0', debug=True)

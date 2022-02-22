@@ -2,13 +2,20 @@
 Abacus demo
 TODO: demonstrate DEMAND by working with open beds so allow the total to exceed the available
 """
+from abacus.main_census import main_census_card
 from abacus.transfers_in import transfers_in_card
-from . import callbacks
-from app import app
-from dash import dcc, html
+
 import dash_bootstrap_components as dbc
 
-from config.config import ConfigFactory, footer, header, nav
+from . import callbacks
+from app import app
+from dash import dcc
+from dash import html
+
+from config.config import ConfigFactory
+from config.config import footer
+from config.config import header
+from config.config import nav
 
 conf = ConfigFactory.factory()
 
@@ -109,16 +116,7 @@ card_transfer_in = dbc.Card(
 card_patients = dbc.Card(
     [
         dbc.CardHeader("Patient list"),
-        dbc.CardBody(
-            [
-                html.P("Current census", className="card-text"),
-                callbacks.slider_census(),
-                # html.Div(id="abacus-census-slider-div"),
-                # callbacks.slider("census_now", value=callbacks.count_patients_in_datatable(), max=35),
-                html.Div(id="abacus-datatable-main"),
-
-            ]
-        ),
+        dbc.CardBody( [ main_census_card, ] ),
     ],
 )
 
@@ -266,10 +264,6 @@ dash_only = html.Div(
 
         dcc.Store(id="plus_total"),
         dcc.Store(id="minus_total"),
-
-        dcc.Interval(id="abacus-interval-data",
-                     interval=conf.REFRESH_INTERVAL, n_intervals=0),
-        dcc.Store(id="abacus-source-data"),
         dcc.Store(id="abacus-data-stepdowns"),
     ]
 )

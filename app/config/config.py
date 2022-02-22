@@ -66,8 +66,11 @@ class Config:
             "wim_r": "WIM-R",
             "bed_empty": "Empty",
             "team": "Side",
-            "discharge_ready_1_4h": "Discharge",
             "vent_type_1_4h": "Ventilation",
+            "n_inotropes_1_4h": "Cardiovascular",
+            "had_rrt_1_4h": "Renal",
+            "organ_icons": "Organ Support",
+            "discharge_ready_1_4h": "Discharge",
         }
     )
 
@@ -76,10 +79,9 @@ class Config:
     }
 
     COLS_FULL = ["bay", "bed", "name", "mrn", "admission_age_years", "sex", "wim_1", "discharge_ready_1_4h"]
-    # COLS_FULL = {i:COLS[i] for i in COLS_FULL}
+    COLS_ABACUS = ["bay", "bed", "name", "mrn", "admission_age_years", "sex", "organ_icons", "discharge_ready_1_4h"]
 
     COLS_SIDEBAR = ["bay", "bed", "name", "team"]
-    # COLS_SIDEBAR = {i:COLS[i] for i in COLS_SIDEBAR}
 
     COL_NAMES = [{"name": v, "id": k} for k, v in COLS.items()]
 
