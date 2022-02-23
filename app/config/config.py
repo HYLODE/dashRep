@@ -126,7 +126,8 @@ header = dbc.Container(
                 [
                     dbc.NavbarSimple(
                         children=[
-                            dbc.NavItem(dbc.NavLink("ICU", href="/sitrep")),
+                            dbc.NavItem(dbc.NavLink("ABACUS", href="/abacus")),
+                            dbc.NavItem(dbc.NavLink("SITREP", href="/sitrep")),
                             dbc.NavItem(dbc.NavLink("PACU", href="/pacu")),
                             dbc.NavItem(dbc.NavLink("PERTT", href="/perrt")),
                             dbc.NavItem(dbc.NavLink("ED", href="/ed")),

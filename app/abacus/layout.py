@@ -228,11 +228,11 @@ main = html.Div([
             dbc.Col(
                 [
                     # Admissions
+                    card_ed,
+                    card_transfer_in,
+                    card_perrt,
                     card_pacu_el,
                     card_pacu_em,
-                    card_ed,
-                    card_perrt,
-                    card_transfer_in,
                 ], md=3),
 
             dbc.Col(
