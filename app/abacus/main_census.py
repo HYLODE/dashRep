@@ -130,7 +130,6 @@ def data_io(intervals):
     ward = "T03"  # placeholder hardcoded; need to move to selection
     ward = ward.lower()
     df = request_data(ward)
-    print(df.head())
     return dict(json_data=df.to_dict("records"))
 
 
@@ -214,6 +213,8 @@ def gen_datatable_main(data_json):
             cell_selectable=True,  # possible to click and navigate cells
             # row_selectable="single",
             markdown_options={"html": True},
+            persistence=True,
+            persisted_props=['data'],
         ),
     )
 

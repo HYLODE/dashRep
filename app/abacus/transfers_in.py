@@ -117,8 +117,9 @@ def make_dt(data_json):
         tooltip_duration=None,
 
         # 2022-02-19 persistence args don't seem to affect forced refresh
-        # persistence=True,
-        # persisted_props=['data'],
+        # but I think this is b/c the data changes each time b/c your generating fresh data
+        persistence=True,
+        persisted_props=['data'],
         # persistence_type='session',
     )
     return dtable
