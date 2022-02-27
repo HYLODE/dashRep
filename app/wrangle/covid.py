@@ -120,7 +120,7 @@ def request_gov_uk(url, table, engine, format='json') -> pd.DataFrame:
         
         request_exists = True if url in req_df.request.values else False
         request_max_ts = req_df.loc[req_df.request == URL_CASES_BY_AGE, 'request_ts'].max() 
-        request_recent = True if request_max_ts > arrow.now().shift(days=-1) else False
+        request_recent = True if request_max_ts.date() == arrow.utcnow().date() else False
         
         if request_exists and request_recent:
             logging.info(f'--- using cached data for {table}')
