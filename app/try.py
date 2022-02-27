@@ -307,10 +307,20 @@ def make_slider(data_json):
 
     return slider
 
+@app.callback(Output("page-content", "children"), Input("url", "pathname"))
+def display_page(pathname):
+    if pathname == "/":
+        return try_one
+    elif pathname == "/try_two":
+        return try_two
+    else:
+        # TODO return both the code and the page
+        return "404"
 
-app.layout = dbc.Container([
+
+try_one = dbc.Container([
     dbc.Card([
-        html.P('External referrals', className="card-title"),
+        html.P('Try One', className="card-title"),
         html.Div(id='div_slider'),
         html.P('Original table', className="card-body"),
         html.Div(id='div_table'),
@@ -326,6 +336,48 @@ app.layout = dbc.Container([
     ]),
 
 ])
+
+try_two = dbc.Container([
+    dbc.Card([
+        html.P('Try Two', className="card-title"),
+    ]),
+
+])
+
+
+header = dbc.Container(
+    dbc.Row(
+        [
+            # dbc.Col([
+            #             html.I(className="fa fa-lungs-virus"),
+            #             ], md=1),
+            dbc.Col(
+                [
+                    dbc.NavbarSimple(
+                        children=[
+                            dbc.NavItem(dbc.NavLink("HOME", href="/")),
+                            dbc.NavItem(dbc.NavLink("TRY_TWO", href="/try_two")),
+                        ],
+                        brand="UCLH Critical Care Sitrep",
+                        brand_href="/",
+                        brand_external_link=True,
+                        color="primary",
+                        dark=True,
+                        sticky=True,
+                    ),
+                ]
+            ),
+        ]
+    ),
+    fluid=True,
+)
+
+app.layout = html.Div(
+    [
+    header,
+    dcc.Location(id="url", refresh=False), html.Div(id="page-content")
+    ]
+)
 
 if __name__ == '__main__':
     app.run_server(port=8010, host='0.0.0.0', debug=True)
