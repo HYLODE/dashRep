@@ -11,12 +11,19 @@ conf = ConfigFactory.factory()
 
 
 engine = conf.GOV_UK_ENGINE
-YESTERDAY = str(arrow.now().shift(days=-1).format("YYYY-MM-DD"))
+
+# https://coronavirus.data.gov.uk/details/whats-new/record/65a19809-ffac-4cf7-b4fd-f1a3dad5cac2
+# 2022-02-27 gov.uk stopped publishing covid data at weekends
+if arrow.now().weekday() in [6, 0]:
+    # shift to the next Friday then back 7 days
+    YESTERDAY = str(arrow.now().shift(weekday=4).shift(days=-7).format("YYYY-MM-DD"))
+else: 
+    YESTERDAY = str(arrow.now().shift(days=-1).format("YYYY-MM-DD"))
+
 URL_HOSP_CASES = f"https://coronavirus.data.gov.uk/api/v2/data?areaType=nhsTrust&release={YESTERDAY}&metric=hospitalCases&format=json"
 URL_CASES_BY_AGE = f"https://api.coronavirus.data.gov.uk/v2/data?areaType=region&areaCode=E12000007&metric=newCasesBySpecimenDateAgeDemographics&format=csv"
 
 # GOV UK dictionaries and lists
-
 TRUSTS_LONDON = [
     "R1H",
     "RRV",
