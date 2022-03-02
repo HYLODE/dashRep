@@ -4,28 +4,29 @@
 # Requirements
 # TODO: simple datatable of the basic census info
 # TODO: loop through table and construct string for markdown
+# TODO: recognise when the table is updated and maintain state
+#       break this down
+#       - [ ] display alert when table changes
 
+import arrow
 import dash
 import dash_bootstrap_components as dbc
 import pandas as pd
 
 from config.config import ConfigFactory
-from dash import Dash
-from dash import Input
-from dash import Output
-from dash import State
+
+from dash_extensions.enrich import Input
+from dash_extensions.enrich import Output
+from dash_extensions.enrich import ServersideOutput
+from dash_extensions.enrich import State
+
 from dash import dash_table as dt
 from dash import dcc
 from dash import html
 
-from utils import utils
 
 conf = ConfigFactory.factory()
 
-COLOUR_GREY = "#c0c0c077"
-COLOUR_GREEN = "#008000ff"
-COLOUR_AMBER = "#ffa500ff"
-COLOUR_RED = "#ff0000ff"
 
 app = dash.Dash(
     __name__,
@@ -38,78 +39,6 @@ app = dash.Dash(
     suppress_callback_exceptions=True,
 )
 
-
-
-def gen_aki_icon(level: str) -> str:
-    icon = 'fa fa-flask'
-    level = level.lower()
-    if level == 'false':
-        colour = COLOUR_GREY
-    elif level == 'true':
-        colour = COLOUR_RED
-    else:
-        colour = COLOUR_GREY
-    icon_string = f'<i class="{icon}" style="color: {colour};"></i>'
-    return icon_string
-
-def gen_rs_icon(level: str) -> str:
-    icon = 'fa fa-lungs'
-    level = level.lower()
-    if level in ['unknown', 'room air']:
-        colour = COLOUR_GREY
-    elif level in ['oxygen']:
-        colour = COLOUR_GREEN
-    elif level in ['hfno', 'niv', 'cpap']:
-        colour = COLOUR_AMBER
-    else:
-        colour = COLOUR_RED
-    icon_string = f'<i class="{icon}" style="color: {colour};"></i>'
-    return icon_string
-
-def gen_cvs_icon(level: str) -> str:
-    icon = 'fa fa-heart'
-    n = int(level)
-    if n == 0:
-        colour = COLOUR_GREY
-    elif n == 1:
-        colour = COLOUR_AMBER
-    else:
-        colour = COLOUR_RED
-    icon_string = f'<i class="{icon}" style="color: {colour};"></i>'
-    return icon_string
-
-
-# {
-#     "name": "Joseph Valdez",
-#     "admission_age_years": 110,
-#     "sex": "M",
-
-#     "n_inotropes_1_4h": 0,
-#     "had_rrt_1_4h": false,
-#     "vent_type_1_4h": "Unknown",
-
-#     "episode_slice_id": 162117,
-#     "csn": "1048246392",
-#     "admission_dt": "2021-10-07T19:30:00+01:00",
-#     "elapsed_los_td": 973800,
-#     "bed_code": "BY01-12",
-#     "bay_code": "BY01",
-#     "bay_type": "Regular",
-#     "ward_code": "T03",
-#     "mrn": "42636453",
-#     "dob": "1911-07-23",
-#     "admission_age_years": 110,
-#     "sex": "M",
-#     "is_proned_1_4h": false,
-#     "discharge_ready_1_4h": "No",
-#     "is_agitated_1_8h": false,
-#     "had_nitric_1_8h": false,
-#     "had_trache_1_12h": false,
-#     "avg_heart_rate_1_24h": null,
-#     "max_temp_1_12h": null,
-#     "avg_resp_rate_1_24h": null,
-#     "wim_1": 0
-# },
 
 def make_fake_df(n_rows):
     # run the imports here since this function won't be needed in production
@@ -143,92 +72,40 @@ def make_fake_df(n_rows):
 
 
 @app.callback(
-    Output("store_dt_external", "data"),
+    ServersideOutput("store_dt_external", "data"),
     Input("update_trigger", "n_intervals"),
+    State("store_dt_external", "data"),
 )
-def load_data(n_intervals):
-    df = make_fake_df(2)
-    return df.to_dict("records")
+def load_data(n_intervals, dt_external):
+    print('refreshing page b/c update trigger time interval has elapsed')
+    if dt_external is None:
+        df = make_fake_df(2)
+        return df.to_dict("records")
+    else:
+        return dt_external
 
 
 @app.callback(
     Output("div_table", "children"),
-    Input("store_dt_external", "data"),
+    Input("store_dt_external", "modified_timestamp"),
+    State("store_dt_external", "data"),
 )
-def make_dt(data_json):
-    df = pd.DataFrame.from_records(data_json)
-
-    dtable = dt.DataTable(
-        id="dt_table",
-        data=df.to_dict("records"),
-        columns=[{"name": i, "id": i} for i in df.columns],
-        editable=True,
-        row_deletable=True,
-        # 2022-02-19 persistence args don't seem to affect forced refresh
-        # persistence=True,
-        # persisted_props=['data'],
-        # persistence_type='session',
-    )
-    return dtable
-
-
-@app.callback(
-    Output("div_table_icons", "children"),
-    Input("store_dt_external", "data"),
-)
-def gen_datatable_main(data_json):
+def gen_datatable_main(modified_ts, data_json):
     dfo = pd.DataFrame.from_records(data_json)
-    dfo['organ_icons'] = ''
-
-    llist = []
-    for t in dfo.itertuples(index=False):
-
-        cvs = gen_cvs_icon(t.n_inotropes_1_4h)
-        rs = gen_rs_icon(t.vent_type_1_4h)
-        # import pdb; pdb.set_trace()
-        aki = gen_aki_icon(t.had_rrt_1_4h)
-
-        icon_string = f"{rs}{cvs}{aki}"
-        ti = t._replace(organ_icons=icon_string)
-        llist.append(ti)
-    dfn = pd.DataFrame(llist, columns=dfo.columns)
 
     # Prep columns with ids and names
     COL_DICT = [
         {"name": v, "id": k} for k, v in conf.COLS.items() if k in conf.COLS_ABACUS
     ]
 
-    utils.deep_update(
-        utils.get_dict_from_list(COL_DICT, "id", "organ_icons"),
-        dict(presentation="markdown"),
-    )
-    utils.deep_update(
-        utils.get_dict_from_list(COL_DICT, "id", "discharge_ready_1_4h"),
-        dict(editable=True),
-    )
-    utils.deep_update(
-        utils.get_dict_from_list(COL_DICT, "id", "discharge_ready_1_4h"),
-        dict(presentation="dropdown"),
-    )
-
-    # dtable = dt.DataTable(
-    #     id="dt_table",
-    #     data=dfn.to_dict("records"),
-    #     columns=columns,
-    #     editable=True,
-    #     row_deletable=True,
-    #     markdown_options={"html": True},
-    # )
-    # return dtable
-
     DISCHARGE_OPTIONS = ["Ready", "No", "Review"]
 
     dto = (
         dt.DataTable(
-            id="abacus-tbl-census",
+            id="dt-tbl-main",
             columns=COL_DICT,
-            data=dfn.to_dict('records'),
-            editable=False,
+            data=dfo.to_dict('records'),
+            editable=True,
             dropdown={
                 "discharge_ready_1_4h": {
                     "options": [{"label": i, "value": i} for i in DISCHARGE_OPTIONS],
@@ -274,38 +151,44 @@ def gen_datatable_main(data_json):
 
 
 @app.callback(
-    Output('dt_table', 'data'),
-    Input('editing-rows-button', 'n_clicks'),
-    State('dt_table', 'data'),
-    State('dt_table', 'columns'),
+    Output("modified_msg", "children"),
+    Input("dt_update_trigger", "n_intervals"),
 )
-def add_row(n_clicks, rows, columns):
-    rows.append({c['id']: '' for c in columns})
-    return rows
+def display_modified_msg(n_intervals):
+
+    if n_intervals:
+        ts_string = arrow.utcnow().shift(seconds=-1 * n_intervals).humanize()
+        res = f"Data modified {ts_string}"
+        alert = dbc.Alert(res, color="warning")
+    else:
+        ts_string = arrow.utcnow().format('YYYY-MM-DD HH:mm:ss')
+        res = f"Data loaded at {ts_string}"
+        alert = dbc.Alert(res, color="success")
+
+    buttons = dbc.Button("Primary", color="primary", className="me-1")
+
+    return dbc.Col([alert, buttons])
+
+@app.callback(
+    Output("dt_update_trigger", "disabled"),
+    Input("dt-tbl-main", "data_timestamp"),
+    State("dt_update_trigger", "disabled"),
+)
+def start_dt_update_trigger(dt_ts, dt_update_boolean):
+    if dt_ts:
+        return False
+    else:
+        return True
 
 
 @app.callback(
-    Output("div_slider", "children"),
-    Input("dt_table", "data"),
+    Output("store_dt_local", "data"),
+    Input("dt-tbl-main", "data_timestamp"),
+    State("dt-tbl-main", "data"),
 )
-def make_slider(data_json):
-    df = pd.DataFrame.from_records(data_json)
-    _max = df.shape[0]
-    value = _max
+def update_data(dt_ts, dt_now):
+    return dt_now
 
-    marks = {str(i): str(i) for i in range(0, _max + 1)}
-    slider = dcc.Slider(
-        id="dt_slider",
-        min=0,
-        max=_max,
-        value=value,
-        marks=marks,
-        step=1,  # i.e. patients are integers
-        updatemode="drag",
-        tooltip={"placement": "top", "always_visible": True},
-    )
-
-    return slider
 
 @app.callback(Output("page-content", "children"), Input("url", "pathname"))
 def display_page(pathname):
@@ -321,19 +204,9 @@ def display_page(pathname):
 try_one = dbc.Container([
     dbc.Card([
         html.P('Try One', className="card-title"),
-        html.Div(id='div_slider'),
-        html.P('Original table', className="card-body"),
         html.Div(id='div_table'),
-        html.P('Icon table', className="card-body"),
-        html.Div(id='div_table_icons'),
-        dbc.Button('Add Row', id='editing-rows-button', n_clicks=0),
     ]),
 
-    html.Div([
-        dcc.Interval(id="update_trigger",
-                     interval=conf.REFRESH_INTERVAL, n_intervals=0),
-        dcc.Store(id='store_dt_external', storage_type='session'),
-    ]),
 
 ])
 
@@ -345,18 +218,26 @@ try_two = dbc.Container([
 ])
 
 
+app_stores = html.Div([
+    dcc.Interval(id="update_trigger",
+                 interval=conf.REFRESH_INTERVAL, n_intervals=0),
+    dcc.Interval(id="dt_update_trigger",
+                 interval=1000, n_intervals=0, disabled=True),
+    dcc.Store(id='store_dt_external', storage_type='session'),
+    dcc.Store(id='store_dt_local', storage_type='session'),
+])
+
+
 header = dbc.Container(
     dbc.Row(
         [
-            # dbc.Col([
-            #             html.I(className="fa fa-lungs-virus"),
-            #             ], md=1),
             dbc.Col(
                 [
                     dbc.NavbarSimple(
                         children=[
                             dbc.NavItem(dbc.NavLink("HOME", href="/")),
-                            dbc.NavItem(dbc.NavLink("TRY_TWO", href="/try_two")),
+                            dbc.NavItem(dbc.NavLink(
+                                "TRY_TWO", href="/try_two")),
                         ],
                         brand="UCLH Critical Care Sitrep",
                         brand_href="/",
@@ -372,10 +253,18 @@ header = dbc.Container(
     fluid=True,
 )
 
+alert_modified = dbc.Row(
+    dbc.Col([
+    html.Div(id='modified_msg')
+        ])
+)
+
 app.layout = html.Div(
     [
-    header,
-    dcc.Location(id="url", refresh=False), html.Div(id="page-content")
+        app_stores,
+        header,
+        alert_modified,
+        dcc.Location(id="url", refresh=False), html.Div(id="page-content")
     ]
 )
 
